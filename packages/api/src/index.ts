@@ -1,30 +1,32 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import { Event, formatEventDate } from '@eventflow/shared';
+import "dotenv/config";
+import { Event, formatEventDate } from "@eventflow/shared";
+import cors from "cors";
+import express from "express";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
-app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.get('/api/events', (_req, res) => {
+app.get("/api/events", (_req, res) => {
   const events: Event[] = [
     {
-      id: '1',
-      name: 'Graduation',
+      id: "1",
+      name: "Graduation",
       date: formatEventDate(new Date()),
-      description: 'UJAP Engineers Graduation'
-    }
+      description: "UJAP Engineers Graduation",
+    },
   ];
 
   res.json(events);

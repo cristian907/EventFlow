@@ -16,7 +16,8 @@
     "build": "tsc --project tsconfig.json",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@types/node": "^22.14.5"
