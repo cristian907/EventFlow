@@ -1,0 +1,9 @@
+echo "Building all workspaces before push..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "Build failed. Push aborted."
+  exit 1
+fi
+
+echo "Build successful. Proceeding with push."

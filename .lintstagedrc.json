@@ -1,0 +1,14 @@
+{
+  "packages/api/**/*.{ts,tsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "packages/web/**/*.{ts,tsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "packages/shared/**/*.{ts,tsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ]
+}
