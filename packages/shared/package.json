@@ -1,24 +1,27 @@
 {
-  "name": "@eventflow/shared",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Shared utilities and types for EventFlow",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@eventflow/shared",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Shared utilities and types for EventFlow",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc --project tsconfig.json",
+        "clean": "rm -rf dist",
+        "type-check": "tsc --noEmit",
+        "dev": "tsc --watch",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "@types/node": "^22.14.5"
     }
-  },
-  "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
-    "dev": "tsc --watch"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.5"
-  }
 }

@@ -2,24 +2,39 @@
   "name": "eventflow",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "description": "System for event management",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
+    "prepare": "husky",
     "dev": "npm-run-all --parallel dev:*",
     "dev:api": "npm run dev --workspace=api",
     "dev:web": "npm run dev --workspace=web",
     "build": "npm run build --workspaces --if-present",
-    "build:shared": "npm run build --workspace=shared",
+    "build:shared": "npm run build --workspace=@eventflow/shared",
     "build:api": "npm run build --workspace=api",
     "build:web": "npm run build --workspace=web",
     "clean": "npm run clean --workspaces --if-present",
     "type-check": "npm run type-check --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.16.2",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
     "npm-run-all": "^4.1.5",
+    "prettier": "^3.8.3",
     "typescript": "^5.7.3"
   },
   "engines": {

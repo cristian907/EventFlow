@@ -1,28 +1,31 @@
 {
-  "name": "api",
-  "version": "1.0.0",
-  "private": true,
-  "description": "EventFlow Express API",
-  "type": "module",
-  "main": "./dist/index.js",
-  "scripts": {
-    "dev": "nodemon",
-    "build": "tsc --project tsconfig.json",
-    "start": "node dist/index.js",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@eventflow/shared": "*",
-    "express": "^4.21.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.1",
-    "@types/node": "^22.14.5",
-    "nodemon": "^3.1.9",
-    "tsx": "^4.19.2"
-  }
+    "name": "api",
+    "version": "1.0.0",
+    "private": true,
+    "description": "EventFlow Express API",
+    "type": "module",
+    "main": "./dist/index.js",
+    "scripts": {
+        "dev": "nodemon",
+        "build": "tsc --project tsconfig.json",
+        "start": "node dist/index.js",
+        "clean": "rm -rf dist",
+        "type-check": "tsc --noEmit",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "dependencies": {
+        "@eventflow/shared": "*",
+        "express": "^4.21.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.7"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^5.0.1",
+        "@types/node": "^22.14.5",
+        "nodemon": "^3.1.9",
+        "tsx": "^4.19.2"
+    }
 }
