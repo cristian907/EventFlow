@@ -1,15 +1,15 @@
 // Example shared utilities and types
 export interface Event {
-  id: string;
-  name: string;
-  date: string;
-  description?: string;
+    id: string;
+    name: string;
+    date: string;
+    description?: string;
 }
 
 export const formatEventDate = (date: Date): string => {
-  return date.toISOString();
+    return date.toISOString();
 };
 
 export const validateEvent = (event: Event): boolean => {
-  return Boolean(event.id && event.name && event.date);
+    return Boolean(event.id && event.name && event.date);
 };
