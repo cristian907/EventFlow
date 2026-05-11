@@ -13,7 +13,7 @@
     "dev:api": "npm run dev --workspace=api",
     "dev:web": "npm run dev --workspace=web",
     "build": "npm run build --workspaces --if-present",
-    "build:shared": "npm run build --workspace=shared",
+    "build:shared": "npm run build --workspace=@eventflow/shared",
     "build:api": "npm run build --workspace=api",
     "build:web": "npm run build --workspace=web",
     "clean": "npm run clean --workspaces --if-present",
