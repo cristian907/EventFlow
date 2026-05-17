@@ -16,7 +16,7 @@
         "format:check": "prettier --check ."
     },
     "dependencies": {
-        "@eventflow/shared": "*",
+        "@eventflow/shared": "workspace:*",
         "express": "^4.21.3",
         "cors": "^2.8.5",
         "dotenv": "^16.4.7"

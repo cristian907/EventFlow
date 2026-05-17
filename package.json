@@ -4,33 +4,30 @@
   "private": true,
   "type": "module",
   "description": "System for event management",
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "prepare": "husky",
     "dev": "npm-run-all --parallel dev:*",
-    "dev:api": "npm run dev --workspace=api",
-    "dev:web": "npm run dev --workspace=web",
-    "build": "npm run build --workspaces --if-present",
-    "build:shared": "npm run build --workspace=@eventflow/shared",
-    "build:api": "npm run build --workspace=api",
-    "build:web": "npm run build --workspace=web",
-    "clean": "npm run clean --workspaces --if-present",
-    "type-check": "npm run type-check --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "format": "npm run format --workspaces --if-present",
-    "format:check": "npm run format:check --workspaces --if-present"
+    "dev:api": "pnpm --filter api run dev",
+    "dev:web": "pnpm --filter web run dev",
+    "build": "pnpm -r run build",
+    "build:shared": "pnpm --filter @eventflow/shared run build",
+    "build:api": "pnpm --filter api run build",
+    "build:web": "pnpm --filter web run build",
+    "clean": "pnpm -r run clean",
+    "type-check": "pnpm -r run type-check",
+    "lint": "pnpm -r run lint",
+    "format": "pnpm -r run format",
+    "format:check": "pnpm -r run format:check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
     "@typescript-eslint/parser": "^8.59.3",
-    "eslint": "^10.3.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.16.2",
-    "globals": "^17.6.0",
+    "globals": "^15.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "npm-run-all": "^4.1.5",
@@ -39,6 +36,12 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }
