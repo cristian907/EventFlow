@@ -48,7 +48,7 @@ Frontend application built with React, TypeScript, and Vite.
 
 ### Prerequisites
 - Node.js >= 18.0.0
-- npm >= 9.0.0
+- pnpm >= 9.0.0
 
 ### Installation
 
@@ -60,7 +60,7 @@ cd EventFlow
 
 2. Install dependencies
 ```bash
-npm install
+pnpm install
 ```
 This installs all dependencies for all workspaces and creates symlinks.
 
@@ -76,14 +76,14 @@ Edit the `.env` files if you need different ports or URLs.
 
 4. Build shared package
 ```bash
-npm run build:shared
+pnpm run build:shared
 ```
 
 ## Development
 
 ### Run all servers (recommended)
 ```bash
-npm run dev
+pnpm run dev
 ```
 Starts both API and web servers in parallel:
 - API: http://localhost:3000
@@ -93,18 +93,18 @@ Starts both API and web servers in parallel:
 
 **API only:**
 ```bash
-npm run dev:api
+pnpm run dev:api
 ```
 
 **Web only:**
 ```bash
-npm run dev:web
+pnpm run dev:web
 ```
 
 **Shared package (watch mode):**
 ```bash
 cd packages/shared
-npm run dev
+pnpm run dev
 ```
 
 ## Development Workflow
