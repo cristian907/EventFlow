@@ -17,15 +17,20 @@
     },
     "dependencies": {
         "@eventflow/shared": "workspace:*",
-        "express": "^4.21.3",
+        "@prisma/adapter-pg": "^7.8.0",
+        "@prisma/client": "^7.8.0",
         "cors": "^2.8.5",
-        "dotenv": "^16.4.7"
+        "dotenv": "^16.4.7",
+        "express": "^4.21.3",
+        "pg": "^8.21.0"
     },
     "devDependencies": {
         "@types/cors": "^2.8.17",
         "@types/express": "^5.0.1",
         "@types/node": "^22.14.5",
+        "@types/pg": "^8.20.0",
         "nodemon": "^3.1.9",
+        "prisma": "^7.8.0",
         "tsx": "^4.19.2"
     }
 }

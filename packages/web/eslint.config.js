@@ -12,7 +12,9 @@ export default [
         languageOptions: {
             parser: tsparser,
             parserOptions: {
-                project: './tsconfig.json',
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
                 tsconfigRootDir: import.meta.dirname,
                 ecmaFeatures: {
                     jsx: true,

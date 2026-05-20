@@ -57,7 +57,9 @@ export default [
         languageOptions: {
             parser: tsparser,
             parserOptions: {
-                project: 'packages/api/tsconfig.json',
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
                 tsconfigRootDir: __dirname,
             },
             globals: { ...globals.node },
