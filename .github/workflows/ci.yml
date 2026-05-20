@@ -30,6 +30,9 @@ jobs:
       - name: Build shared package
         run: pnpm run build:shared
 
+      - name: Generate Prisma client
+        run: pnpm run generate
+
       - name: Lint code
         run: pnpm run lint
 
