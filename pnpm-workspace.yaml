@@ -1,7 +1,7 @@
 packages:
   - 'packages/*'
 allowBuilds:
-  '@prisma/engines': false
+  '@prisma/engines': true
   esbuild: true
-  prisma: false
+  prisma: true
   unrs-resolver: true
