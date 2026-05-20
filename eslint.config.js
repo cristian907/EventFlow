@@ -14,13 +14,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sharedTsRules = {
     ...tseslint.configs.recommended.rules,
     '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-            argsIgnorePattern: '^_',
-            varsIgnorePattern: '^_',
-        },
-    ],
     '@typescript-eslint/no-floating-promises': 'error',
     '@typescript-eslint/no-misused-promises': 'error',
     '@typescript-eslint/await-thenable': 'error',
