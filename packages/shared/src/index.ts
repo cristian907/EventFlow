@@ -13,3 +13,6 @@ export const formatEventDate = (date: Date): string => {
 export const validateEvent = (event: Event): boolean => {
     return Boolean(event.id && event.name && event.date);
 };
+
+export * from './schemas/index.js';
+export * from './types/index.js';
