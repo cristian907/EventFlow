@@ -1,11 +1,12 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 
+import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors.js';
 import { PrismaClient } from '../../generated/prisma/client.js';
 
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is required');
+    throw new EnvironmentVariableError('DATABASE_URL');
 }
 
 const adapter = new PrismaPg({ connectionString });

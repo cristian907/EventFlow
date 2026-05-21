@@ -4,6 +4,7 @@ import { sign, SignOptions } from 'jsonwebtoken';
 import ms from 'ms';
 
 import { InvalidCredentialsError, UserNotFoundError } from '../../core/errors/BusinessErrors';
+import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors';
 import IUserRepository from '../../core/interfaces/repositories/IUserRepository';
 
 import AuthMapper from './auth.mapper';
@@ -15,9 +16,8 @@ export default class AuthService {
 
     constructor(private userRepository: IUserRepository) {
         const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
-        if (!JWT_SECRET) throw new Error('JWT_SECRET is not defined in environment variables');
-        if (!JWT_EXPIRES_IN)
-            throw new Error('JWT_EXPIRES_IN is not defined in environment variables');
+        if (!JWT_SECRET) throw new EnvironmentVariableError('JWT_SECRET');
+        if (!JWT_EXPIRES_IN) throw new EnvironmentVariableError('JWT_EXPIRES_IN');
 
         this.jwtSecret = JWT_SECRET;
         this.jwtExpiresIn = JWT_EXPIRES_IN as SignOptions['expiresIn'];
