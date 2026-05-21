@@ -1,4 +1,4 @@
-abstract class InternalServerError extends Error {
+export abstract class InternalServerError extends Error {
     abstract readonly name: string;
     abstract readonly statusCode: number;
 }

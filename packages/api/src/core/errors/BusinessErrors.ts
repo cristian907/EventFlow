@@ -1,4 +1,4 @@
-abstract class BusinessError extends Error {
+export abstract class BusinessError extends Error {
     abstract readonly name: string;
     abstract readonly statusCode: number;
 }
