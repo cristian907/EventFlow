@@ -5,7 +5,7 @@ import { InternalServerError } from '../../core/errors/InternalServerErrors';
 
 export default async function globalErrorHandler(
     error: Error,
-    req: Request,
+    _: Request,
     res: Response,
 ): Promise<void> {
     if (error instanceof BusinessError) {
