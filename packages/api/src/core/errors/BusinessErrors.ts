@@ -11,3 +11,21 @@ export class UserAlreadyExistsError extends BusinessError {
         super(`A user with email ${email} already exists.`);
     }
 }
+
+export class UserNotFoundError extends BusinessError {
+    public readonly name = 'UserNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(email: string) {
+        super(`No user found with email ${email}.`);
+    }
+}
+
+export class InvalidCredentialsError extends BusinessError {
+    public readonly name = 'InvalidCredentialsError';
+    public readonly statusCode = 401;
+
+    constructor() {
+        super('Invalid email or password.');
+    }
+}
