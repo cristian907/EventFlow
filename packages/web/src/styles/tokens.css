@@ -1,0 +1,49 @@
+:root {
+  /* ===== Backgrounds ===== */
+  --bg-base:     #F4F1EF;
+  --bg-surface:  #F9F7F5;
+  --bg-elevated: #FFFFFF;
+
+  /* ===== Text ===== */
+  --text-primary:   #201D1C;
+  --text-secondary: #7A736F;
+  --text-disabled:  #B0A9A5;
+
+  /* ===== Border ===== */
+  --border: #E4E1DE;
+
+  /* ===== Primary (Coral) ===== */
+  --primary:       #ED786A;
+  --primary-dark:  #D4574A;
+  --primary-hover: #E5655A;
+  --primary-light: #FCEEED;
+
+  /* ===== Secondary (Teal) ===== */
+  --secondary:       #4A9E8E;
+  --secondary-dark:  #357A6D;
+  --secondary-light: #E6F5F1;
+
+  /* ===== Danger ===== */
+  --danger:       #D64545;
+  --danger-light: #FDEEEE;
+
+  /* ===== Success ===== */
+  --success:       #2D8A6E;
+  --success-light: #E7F6F0;
+
+  /* ===== Warning ===== */
+  --warning:       #D4933D;
+  --warning-light: #FDF4E7;
+
+  /* ===== Shadows ===== */
+  --shadow-sm: 0 1px 2px rgba(32, 29, 28, 0.06), 0 1px 3px rgba(32, 29, 28, 0.08);
+  --shadow-md: 0 4px 12px rgba(32, 29, 28, 0.08), 0 2px 6px rgba(32, 29, 28, 0.06);
+
+  /* ===== Radius ===== */
+  --r-lg: 12px;
+
+  /* ===== Typography ===== */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-mono:  'JetBrains Mono', ui-monospace, monospace;
+}
