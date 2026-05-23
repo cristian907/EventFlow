@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodObject, ZodError } from 'zod';
+import { ZodObject, ZodError, ZodIssue, ZodRawShape } from 'zod';
 
 export default function validateSchema(
-    schema: ZodObject,
+    schema: ZodObject<ZodRawShape>,
 ): (req: Request, res: Response, next: NextFunction) => void {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -14,9 +14,9 @@ export default function validateSchema(
                 console.log('Validation Error Details:', JSON.stringify(error.issues, null, 2));
                 return res.status(400).json({
                     message: error.issues
-                        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                        .map((issue: ZodIssue) => `${issue.path.join('.')}: ${issue.message}`)
                         .join(', '),
-                    detailsOfEachInvalidData: error.issues.map((issue) => {
+                    detailsOfEachInvalidData: error.issues.map((issue: ZodIssue) => {
                         return {
                             code: issue.code,
                             message: issue.message,
@@ -25,7 +25,7 @@ export default function validateSchema(
                     }),
                 });
             }
-            next(error);
+            next(error instanceof Error ? error : new Error(String(error)));
         }
     };
 }
