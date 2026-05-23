@@ -1,5 +1,4 @@
 import { UserToCreateType } from '@eventflow/shared';
-import { hash } from 'bcrypt';
 
 import User, { UserRole } from '../../core/entities/User';
 import { UserAlreadyExistsError } from '../../core/errors/BusinessErrors';

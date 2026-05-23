@@ -1,28 +1,30 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
 import { BusinessError } from '../../core/errors/BusinessErrors';
 import { InternalServerError } from '../../core/errors/InternalServerErrors';
+import { logger } from '../logger';
 
-export default function globalErrorHandler(
+export default async function globalErrorHandler(
     error: Error,
     _req: Request,
     res: Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _next: NextFunction,
-): void {
+): Promise<void> {
     if (error instanceof BusinessError) {
-        console.error(error);
+        logger.error(error.message, { name: error.name, stack: error.stack });
         res.status(error.statusCode).json({
             name: error.name,
             message: error.message,
         });
     } else if (error instanceof InternalServerError) {
-        console.error(error);
+        logger.error(error.message, { name: error.name, stack: error.stack });
         res.status(error.statusCode).json({
             name: 'Internal Server Error',
             message: 'An error has ocurred on the server. Try again Later',
         });
     } else {
-        console.error(error);
+        logger.error(error.message, { name: error.name, stack: error.stack });
         res.status(500).json({
             name: 'Internal Server Error',
             message: 'An error has ocurred on the server. Try again Later',
