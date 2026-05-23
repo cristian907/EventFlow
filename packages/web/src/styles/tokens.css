@@ -44,6 +44,6 @@
 
   /* ===== Typography ===== */
   --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-serif: 'Inter', system-ui, sans-serif;
   --font-mono:  'JetBrains Mono', ui-monospace, monospace;
 }

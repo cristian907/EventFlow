@@ -15,6 +15,21 @@ export function LoginPage() {
             <BrandPanel />
 
             <section className="form-panel">
+                <div className="mobile-brand">
+                    <div className="brand-logo">
+                        <img
+                            src="../../../../public/logos/logo-app-icon.svg"
+                            alt="Event Flow Logo"
+                            width={40}
+                            height={40}
+                        />
+                        <div>
+                            <div className="name">Event Flow</div>
+                            <div className="sub">Gestión de Eventos</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="form-topbar">
                     <a href="#">
                         Soporte
@@ -24,12 +39,6 @@ export function LoginPage() {
 
                 <div className="form-center">
                     <div className="form-card">
-                        <div className="org-identity">
-                            <div className="org-logo-placeholder">Logo</div>
-                            <div className="org-name">Nombre de la Organizaci&oacute;n</div>
-                            <div className="org-sub">Panel de administraci&oacute;n</div>
-                        </div>
-
                         <h2 className="form-title">Bienvenido de vuelta</h2>
                         <p className="form-sub">
                             Ingresa tu correo y contrase&ntilde;a para acceder al panel.

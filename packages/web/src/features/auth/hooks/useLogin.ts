@@ -20,7 +20,7 @@ export function useLogin(): UseLoginReturn {
 
         try {
             await login(email, password);
-            await navigate('/dashboard');
+            await navigate('/404');
         } catch (error: unknown) {
             const message = (error as { response?: { data?: { message?: string } } })?.response
                 ?.data?.message;
