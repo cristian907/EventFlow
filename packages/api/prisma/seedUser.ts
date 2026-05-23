@@ -2,13 +2,13 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
 
-import { EnvironmentVariableError } from '../src/core/errors/InternalServerErrors.js';
+import { EnvironmentVariableError } from '../src/core/errors/InternalServerErrors';
 import { PrismaClient } from '../src/generated/prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-    throw new EnvironmentVariableError('DATABASE_URL environment variable is not set.');
+    throw new EnvironmentVariableError('DATABASE_URL');
 }
 
 const adapter = new PrismaPg({ connectionString });

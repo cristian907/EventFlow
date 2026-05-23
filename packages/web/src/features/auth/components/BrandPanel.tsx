@@ -4,8 +4,8 @@ export function BrandPanel() {
             <div className="brand-top">
                 <div className="brand-logo">
                     <img
-                        src="../../../../public/logos/logo-app-icon.svg"
-                        alt="Event Flow Logo"
+                        src="/logos/logo-app-icon.svg"
+                        alt="EventFlow Logo"
                         width={40}
                         height={40}
                     />

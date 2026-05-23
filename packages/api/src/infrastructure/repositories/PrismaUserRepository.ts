@@ -1,4 +1,5 @@
 import { UserToCreateType } from '@eventflow/shared';
+import { hash } from 'bcrypt';
 
 import User, { UserRole } from '../../core/entities/User';
 import { UserAlreadyExistsError } from '../../core/errors/BusinessErrors';
@@ -8,8 +9,7 @@ import {
     PrismaClient,
     User as PrismaUser,
     UserRole as PrismaUserRole,
-} from '../../generated/prisma/client.js';
-
+} from '../../generated/prisma/client';
 const toDomainRole = (role: PrismaUserRole): UserRole =>
     role === PrismaUserRole.ADMIN ? UserRole.Admin : UserRole.User;
 

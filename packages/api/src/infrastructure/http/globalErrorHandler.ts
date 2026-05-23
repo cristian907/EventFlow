@@ -1,13 +1,14 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 import { BusinessError } from '../../core/errors/BusinessErrors';
 import { InternalServerError } from '../../core/errors/InternalServerErrors';
 
-export default async function globalErrorHandler(
+export default function globalErrorHandler(
     error: Error,
-    _: Request,
+    _req: Request,
     res: Response,
-): Promise<void> {
+    _next: NextFunction,
+): void {
     if (error instanceof BusinessError) {
         console.error(error);
         res.status(error.statusCode).json({

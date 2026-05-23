@@ -2,7 +2,7 @@ packages:
   - 'packages/*'
 allowBuilds:
   '@prisma/engines': true
-  bcrypt: false
+  bcrypt: true
   esbuild: true
   prisma: true
   unrs-resolver: true
