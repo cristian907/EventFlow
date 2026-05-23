@@ -9,6 +9,7 @@ export default class AuthMapper {
             email: user.email,
             fullName: user.name,
             phoneNumber: user.phoneNumber,
+            role: user.role,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

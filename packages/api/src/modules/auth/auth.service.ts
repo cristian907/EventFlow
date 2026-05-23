@@ -1,6 +1,7 @@
-import { UserToLoginType, UserType } from '@eventflow/shared';
+import { UserRole, UserToLoginType, UserType } from '@eventflow/shared';
 import { compare } from 'bcrypt';
-import { sign, SignOptions } from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
+const { sign } = jwt;
 import ms from 'ms';
 
 import { InvalidCredentialsError, UserNotFoundError } from '../../core/errors/BusinessErrors';
@@ -40,7 +41,7 @@ export default class AuthService {
         return AuthMapper.toUserType(existingUser);
     }
 
-    public getJWT(userId: string): string {
-        return sign({ userId }, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
+    public getJWT(userId: string, role: UserRole): string {
+        return sign({ userId, role }, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
     }
 }

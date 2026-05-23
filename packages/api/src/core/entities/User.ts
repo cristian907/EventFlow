@@ -1,3 +1,8 @@
+export enum UserRole {
+    User = 'USER',
+    Admin = 'ADMIN',
+}
+
 export default class User {
     constructor(
         public id: string,
@@ -5,6 +10,7 @@ export default class User {
         public email: string,
         public passwordHash: string,
         public phoneNumber: string,
+        public role: UserRole,
         public createdBy: string | null,
         public createdAt: Date,
         public updatedAt: Date,

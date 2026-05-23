@@ -8,7 +8,7 @@ export default class AuthController {
     login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const user = await this.authService.login(req.body);
-            const token = this.authService.getJWT(user.id);
+            const token = this.authService.getJWT(user.id, user.role);
 
             res.cookie('access_token', token, {
                 httpOnly: true,

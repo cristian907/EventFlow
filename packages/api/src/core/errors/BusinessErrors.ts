@@ -29,3 +29,12 @@ export class InvalidCredentialsError extends BusinessError {
         super('Invalid email or password.');
     }
 }
+
+export class UnauthorizedError extends BusinessError {
+    public readonly name = 'UnauthorizedError';
+    public readonly statusCode = 401;
+
+    constructor() {
+        super('You are not authorized to access this resource.');
+    }
+}

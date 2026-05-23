@@ -1,9 +1,17 @@
 import { UserToCreateType } from '@eventflow/shared';
 
-import User from '../../core/entities/User';
+import User, { UserRole } from '../../core/entities/User';
 import { UserAlreadyExistsError } from '../../core/errors/BusinessErrors';
 import IUserRepository from '../../core/interfaces/repositories/IUserRepository';
-import { Prisma, PrismaClient, User as PrismaUser } from '../../generated/prisma/client.js';
+import {
+    Prisma,
+    PrismaClient,
+    User as PrismaUser,
+    UserRole as PrismaUserRole,
+} from '../../generated/prisma/client.js';
+
+const toDomainRole = (role: PrismaUserRole): UserRole =>
+    role === PrismaUserRole.ADMIN ? UserRole.Admin : UserRole.User;
 
 export default class PrismaUserRepository implements IUserRepository {
     constructor(private prismaClient: PrismaClient) {}
@@ -15,6 +23,7 @@ export default class PrismaUserRepository implements IUserRepository {
             prismaUser.email,
             prismaUser.passwordHash,
             prismaUser.phoneNumber,
+            toDomainRole(prismaUser.role),
             prismaUser.createdBy,
             prismaUser.createdAt,
             prismaUser.updatedAt,
@@ -43,6 +52,7 @@ export default class PrismaUserRepository implements IUserRepository {
     async findById(id: string): Promise<User | null> {
         const prismaUser = await this.prismaClient.user.findUnique({
             where: { id },
+            include: { eventMembers: true },
         });
 
         return prismaUser ? this.mapToUserEntity(prismaUser) : null;
@@ -80,7 +90,7 @@ export default class PrismaUserRepository implements IUserRepository {
             return this.mapToUserEntity(updatedUser);
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                throw new UserAlreadyExistsError(userData.email!);
+                if (userData.email) throw new UserAlreadyExistsError(userData.email);
             }
             throw error;
         }

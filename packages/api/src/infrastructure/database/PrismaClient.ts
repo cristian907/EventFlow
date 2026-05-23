@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 
-import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors.js';
-import { PrismaClient } from '../../generated/prisma/client.js';
+import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors';
+import { PrismaClient } from '../../generated/prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
 
