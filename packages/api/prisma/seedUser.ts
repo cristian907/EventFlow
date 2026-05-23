@@ -6,16 +6,20 @@ import { EnvironmentVariableError } from '../src/core/errors/InternalServerError
 import { PrismaClient } from '../src/generated/prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
+const saltRounds = process.env.BCRYPT_SALT_ROUNDS;
 
 if (!connectionString) {
     throw new EnvironmentVariableError('DATABASE_URL');
+}
+if (!saltRounds) {
+    throw new EnvironmentVariableError('BCRYPT_SALT_ROUNDS');
 }
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function seed(): Promise<void> {
-    const passwordHash = await bcrypt.hash('admin1234', 10);
+    const passwordHash = await bcrypt.hash('admin1234', parseInt(saltRounds, 10));
 
     const user = await prisma.user.upsert({
         where: { email: 'admin@eventflow.com' },
