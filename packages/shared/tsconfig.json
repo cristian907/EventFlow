@@ -3,6 +3,8 @@
     "compilerOptions": {
         "outDir": "./dist",
         "rootDir": "./src",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "composite": true,
         "declaration": true,
         "declarationMap": true

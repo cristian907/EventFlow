@@ -11,7 +11,7 @@ export default [
             parser: tsparser,
             parserOptions: {
                 projectService: {
-                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                    allowDefaultProject: ['*.config.ts', '*.config.js', 'prisma/*.ts'],
                 },
                 tsconfigRootDir: import.meta.dirname,
             },
