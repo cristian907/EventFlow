@@ -1,4 +1,4 @@
-import { UpdateUserRoleSchema } from '@eventflow/shared';
+import { UpdateUserActiveSchema } from '@eventflow/shared';
 import { Router } from 'express';
 
 import authMiddleware, { authorizeAdmin } from '../../infrastructure/http/authMiddleware';
@@ -13,7 +13,11 @@ export default function createUsersRoutes(usersController: UsersController): Rou
     router.use(authMiddleware, authorizeAdmin);
 
     router.get('/', usersController.list);
-    router.put('/:userId/role', validateSchema(UpdateUserRoleSchema), usersController.updateRole);
+    router.put(
+        '/:userId/active',
+        validateSchema(UpdateUserActiveSchema),
+        usersController.updateActive,
+    );
 
     return router;
 }

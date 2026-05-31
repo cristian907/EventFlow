@@ -1,9 +1,8 @@
 import { UserType } from '@eventflow/shared';
 
 import { UserRole } from '../../core/entities/User';
-import { SelfDegradeError, UserNotFoundByIdError } from '../../core/errors/BusinessErrors';
+import { DeactivateAdminError, UserNotFoundByIdError } from '../../core/errors/BusinessErrors';
 import IUserRepository from '../../core/interfaces/repositories/IUserRepository';
-import { requestContext } from '../../infrastructure/http/authMiddleware';
 import AuthMapper from '../auth/auth.mapper';
 
 export default class UsersService {
@@ -35,25 +34,18 @@ export default class UsersService {
         };
     }
 
-    public async updateUserRole(targetUserId: string, newRoleStr: string): Promise<UserType> {
-        const store = requestContext.getStore();
-
-        let newRole = UserRole.User;
-        if (newRoleStr === 'ADMIN') {
-            newRole = UserRole.Admin;
-        }
-
-        // Prevent self-degradation of current admin to user
-        if (store?.userId === targetUserId && newRole === UserRole.User) {
-            throw new SelfDegradeError();
-        }
-
+    public async updateUserActive(targetUserId: string, isActive: boolean): Promise<UserType> {
         const existingUser = await this.userRepository.findById(targetUserId);
         if (!existingUser) {
             throw new UserNotFoundByIdError(targetUserId);
         }
 
-        const updatedUser = await this.userRepository.updateRole(targetUserId, newRole);
+        // Only allow deactivating/activating USER role users. Block ADMIN deactivation.
+        if (existingUser.role === UserRole.Admin) {
+            throw new DeactivateAdminError();
+        }
+
+        const updatedUser = await this.userRepository.updateActive(targetUserId, isActive);
         return AuthMapper.toUserType(updatedUser);
     }
 }

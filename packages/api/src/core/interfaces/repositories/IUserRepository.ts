@@ -14,5 +14,5 @@ export default interface IUserRepository {
         search?: string;
         role?: UserRole;
     }): Promise<{ users: User[]; total: number }>;
-    updateRole(id: string, role: UserRole): Promise<User>;
+    updateActive(id: string, isActive: boolean): Promise<User>;
 }

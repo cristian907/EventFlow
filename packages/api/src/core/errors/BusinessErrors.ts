@@ -39,14 +39,12 @@ export class UnauthorizedError extends BusinessError {
     }
 }
 
-export class SelfDegradeError extends BusinessError {
-    public readonly name = 'SelfDegradeError';
+export class DeactivateAdminError extends BusinessError {
+    public readonly name = 'DeactivateAdminError';
     public readonly statusCode = 400;
 
     constructor() {
-        super(
-            'No puedes cambiar tu propio rol de ADMIN a USER para evitar dejar el sistema sin administradores.',
-        );
+        super('No está permitido desactivar a usuarios con rol global ADMINISTRADOR.');
     }
 }
 

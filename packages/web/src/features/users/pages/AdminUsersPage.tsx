@@ -7,6 +7,7 @@ import {
     faSpinner,
     faChevronLeft,
     faChevronRight,
+    faUserSlash,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState, useEffect, useCallback } from 'react';
@@ -91,20 +92,20 @@ export function AdminUsersPage() {
         return () => clearTimeout(timer);
     }, [fetchUsers]);
 
-    // Handle Role Change API Call
-    const handleRoleChange = () => {
+    // Handle Status Change API Call
+    const handleStatusChange = () => {
         if (!selectedUser) return;
 
         setIsUpdating(true);
         setError(null);
         setSuccessMessage(null);
 
-        const newRole = selectedUser.role === 'ADMIN' ? 'USER' : 'ADMIN';
+        const newActiveStatus = !selectedUser.isActive;
 
-        api.put(`/users/${selectedUser.id}/role`, { role: newRole })
+        api.put(`/users/${selectedUser.id}/active`, { isActive: newActiveStatus })
             .then(() => {
                 setSuccessMessage(
-                    `Rol de ${selectedUser.fullName} actualizado a ${newRole} con éxito.`,
+                    `El usuario ${selectedUser.fullName} ha sido ${newActiveStatus ? 'activado' : 'desactivado'} con éxito.`,
                 );
                 setSelectedUser(null);
 
@@ -119,7 +120,7 @@ export function AdminUsersPage() {
             .catch((err: unknown) => {
                 const msg =
                     (err as { response?: { data?: { message?: string } } })?.response?.data
-                        ?.message || 'No se pudo cambiar el rol del usuario.';
+                        ?.message || 'No se pudo actualizar el estado del usuario.';
                 setError(msg);
             })
             .finally(() => {
@@ -272,6 +273,7 @@ export function AdminUsersPage() {
                                 <th>Correo</th>
                                 <th>Teléfono</th>
                                 <th>Rol Global</th>
+                                <th>Estado</th>
                                 <th>Fecha Registro</th>
                                 <th></th>
                             </tr>
@@ -326,6 +328,13 @@ export function AdminUsersPage() {
                                                 {u.role === 'ADMIN' ? 'ADMINISTRADOR' : 'USUARIO'}
                                             </span>
                                         </td>
+                                        <td>
+                                            <span
+                                                className={`badge dot ${u.isActive ? 'success' : 'default'}`}
+                                            >
+                                                {u.isActive ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </td>
                                         <td
                                             className="text-small text-secondary"
                                             style={{ fontSize: 13, color: 'var(--text-secondary)' }}
@@ -333,26 +342,51 @@ export function AdminUsersPage() {
                                             {new Date(u.createdAt).toLocaleDateString()}
                                         </td>
                                         <td>
-                                            <button
-                                                className={`btn btn-sm ${u.role === 'ADMIN' ? 'btn-ghost' : 'btn-secondary'}`}
-                                                onClick={() => setSelectedUser(u)}
-                                                disabled={isSelf}
-                                                title={
-                                                    isSelf
-                                                        ? 'No puedes cambiar tu propio rol para evitar accidentes de bloqueo'
-                                                        : `Cambiar rol de ${u.fullName}`
-                                                }
-                                                style={{
-                                                    opacity: isSelf ? 0.45 : 1,
-                                                    cursor: isSelf ? 'not-allowed' : 'pointer',
-                                                }}
-                                            >
-                                                <FontAwesomeIcon
-                                                    icon={faUserShield}
-                                                    style={{ marginRight: 4 }}
-                                                />
-                                                Cambiar Rol
-                                            </button>
+                                            {u.role === 'ADMIN' ? (
+                                                <button
+                                                    className="btn btn-sm btn-ghost"
+                                                    disabled
+                                                    title="No está permitido desactivar administradores"
+                                                    style={{
+                                                        opacity: 0.45,
+                                                        cursor: 'not-allowed',
+                                                    }}
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faUserShield}
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                    Desactivar
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-ghost'}`}
+                                                    onClick={() => setSelectedUser(u)}
+                                                    title={
+                                                        u.isActive
+                                                            ? `Desactivar cuenta de ${u.fullName}`
+                                                            : `Activar cuenta de ${u.fullName}`
+                                                    }
+                                                    style={
+                                                        !u.isActive
+                                                            ? {
+                                                                  color: 'var(--success)',
+                                                                  borderColor: 'var(--success)',
+                                                                  background:
+                                                                      'var(--success-light)',
+                                                              }
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={
+                                                            u.isActive ? faUserSlash : faUserCheck
+                                                        }
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                    {u.isActive ? 'Desactivar' : 'Activar'}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -405,7 +439,7 @@ export function AdminUsersPage() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>
-                            ¿Cambiar rol global?
+                            {selectedUser.isActive ? '¿Desactivar usuario?' : '¿Activar usuario?'}
                         </h3>
 
                         <p
@@ -415,32 +449,27 @@ export function AdminUsersPage() {
                                 marginBottom: 18,
                             }}
                         >
-                            Estás a punto de cambiar el rol de{' '}
-                            <strong>{selectedUser.fullName}</strong> de{' '}
-                            <span style={{ textTransform: 'lowercase', fontWeight: 600 }}>
-                                {selectedUser.role}
-                            </span>{' '}
-                            a{' '}
-                            <strong
-                                style={{
-                                    color:
-                                        selectedUser.role === 'ADMIN'
-                                            ? 'var(--secondary-dark)'
-                                            : 'var(--primary-dark)',
-                                }}
-                            >
-                                {selectedUser.role === 'ADMIN' ? 'USER' : 'ADMIN'}
-                            </strong>
-                            .
+                            {selectedUser.isActive ? (
+                                <>
+                                    Estás a punto de desactivar la cuenta de{' '}
+                                    <strong>{selectedUser.fullName}</strong>. El usuario perderá el
+                                    acceso al sistema de forma inmediata.
+                                </>
+                            ) : (
+                                <>
+                                    Estás a punto de activar la cuenta de{' '}
+                                    <strong>{selectedUser.fullName}</strong>. El usuario recuperará
+                                    el acceso al sistema de forma inmediata.
+                                </>
+                            )}
                         </p>
 
                         <div
                             className="card mt-2 mb-4"
                             style={{
-                                background:
-                                    selectedUser.role === 'ADMIN'
-                                        ? 'var(--secondary-light)'
-                                        : 'var(--primary-light)',
+                                background: selectedUser.isActive
+                                    ? 'var(--danger-light)'
+                                    : 'var(--success-light)',
                                 borderColor: 'transparent',
                                 padding: 12,
                                 borderRadius: 'var(--r-lg)',
@@ -450,32 +479,30 @@ export function AdminUsersPage() {
                             <div
                                 className="text-small fw-600"
                                 style={{
-                                    color:
-                                        selectedUser.role === 'ADMIN'
-                                            ? 'var(--secondary-dark)'
-                                            : 'var(--primary-dark)',
+                                    color: selectedUser.isActive
+                                        ? 'var(--danger)'
+                                        : 'var(--success)',
                                     fontWeight: 600,
                                     marginBottom: 4,
                                     fontSize: 12.5,
                                 }}
                             >
-                                {selectedUser.role === 'ADMIN'
-                                    ? 'Efecto de degradación (USER):'
-                                    : 'Efecto de promoción (ADMIN):'}
+                                {selectedUser.isActive
+                                    ? 'Efecto de desactivación:'
+                                    : 'Efecto de activación:'}
                             </div>
                             <div
                                 className="text-small"
                                 style={{
-                                    color:
-                                        selectedUser.role === 'ADMIN'
-                                            ? 'var(--secondary-dark)'
-                                            : 'var(--primary-dark)',
+                                    color: selectedUser.isActive
+                                        ? 'var(--danger)'
+                                        : 'var(--success)',
                                     fontSize: 12.5,
                                 }}
                             >
-                                {selectedUser.role === 'ADMIN'
-                                    ? 'Perderá el acceso de superadministrador y a los paneles globales de control inmediatamente.'
-                                    : 'Obtendrá acceso completo para auditar usuarios, promocionar roles y configurar opciones globales de la plataforma.'}
+                                {selectedUser.isActive
+                                    ? 'Perderá el acceso al sistema. Sus datos históricos se conservan, pero no podrá iniciar sesión en la plataforma.'
+                                    : 'El usuario recuperará el acceso al sistema de forma inmediata y podrá iniciar sesión normalmente con sus credenciales.'}
                             </div>
                         </div>
 
@@ -491,20 +518,24 @@ export function AdminUsersPage() {
                                 Cancelar
                             </button>
                             <button
-                                className="btn btn-primary"
-                                onClick={handleRoleChange}
+                                className={`btn ${selectedUser.isActive ? 'btn-danger' : 'btn-primary'}`}
+                                onClick={handleStatusChange}
                                 disabled={isUpdating}
-                                style={{
-                                    background:
-                                        selectedUser.role === 'ADMIN'
-                                            ? 'var(--secondary)'
-                                            : 'var(--primary)',
-                                }}
+                                style={
+                                    !selectedUser.isActive
+                                        ? {
+                                              background: 'var(--success)',
+                                              color: '#fff',
+                                          }
+                                        : undefined
+                                }
                             >
                                 {isUpdating ? (
                                     <FontAwesomeIcon icon={faSpinner} spin />
+                                ) : selectedUser.isActive ? (
+                                    'Desactivar Usuario'
                                 ) : (
-                                    'Confirmar Cambio'
+                                    'Activar Usuario'
                                 )}
                             </button>
                         </div>

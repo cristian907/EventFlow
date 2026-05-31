@@ -10,6 +10,7 @@ export default class AuthMapper {
             fullName: user.name,
             phoneNumber: user.phoneNumber,
             role: user.role,
+            isActive: user.isActive,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

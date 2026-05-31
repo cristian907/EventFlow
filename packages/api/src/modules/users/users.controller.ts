@@ -31,14 +31,14 @@ export default class UsersController {
         }
     };
 
-    updateRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    updateActive = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { userId } = req.params;
-            const { role } = req.body;
+            const { isActive } = req.body;
 
-            const updatedUser = await this.usersService.updateUserRole(
+            const updatedUser = await this.usersService.updateUserActive(
                 String(userId),
-                String(role),
+                Boolean(isActive),
             );
 
             res.json({ user: updatedUser });
