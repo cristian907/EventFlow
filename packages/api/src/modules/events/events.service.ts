@@ -34,9 +34,6 @@ export default class EventsService {
             imageUrl: eventData.imageUrl || defaultImageUrl,
         });
 
-        // Automatically assign the organizer as an ADMIN of the event
-        await this.eventRepository.createMember(createdEvent.id, organizerId, 'ADMIN');
-
         return EventsMapper.toEventType(createdEvent);
     }
 

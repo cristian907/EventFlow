@@ -67,6 +67,12 @@ export default class PrismaEventRepository implements IEventRepository {
                 maxCapacity: eventData.maxCapacity,
                 imageUrl: eventData.imageUrl,
                 status: PrismaEventStatus.DRAFT,
+                eventMembers: {
+                    create: {
+                        userId: eventData.organizerId,
+                        role: PrismaEventMemberRole.ADMIN,
+                    },
+                },
             },
         });
         return this.mapToEventEntity(createdEvent);

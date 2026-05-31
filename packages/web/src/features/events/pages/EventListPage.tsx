@@ -17,13 +17,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useEffect, useCallback } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '../../auth/context/AuthContext';
 import { eventService } from '../services/eventService';
 
 export function EventListPage() {
-    const navigate = useNavigate();
     const { user: currentUser } = useAuth();
 
     // Core States
@@ -321,7 +320,10 @@ export function EventListPage() {
                         <button
                             key={s}
                             className={`btn btn-sm ${statusFilter === s ? 'btn-secondary' : 'btn-ghost'}`}
-                            onClick={() => setStatusFilter(s)}
+                            onClick={() => {
+                                setStatusFilter(s);
+                                setPage(1);
+                            }}
                             style={{
                                 borderRadius: 8,
                                 padding: '6px 12px',
@@ -447,12 +449,10 @@ export function EventListPage() {
                                 });
 
                                 return (
-                                    <div
+                                    <Link
                                         key={e.id}
+                                        to={`/events/${e.id}/dashboard`}
                                         className="card elevated"
-                                        onClick={() => {
-                                            void navigate(`/events/${e.id}/dashboard`);
-                                        }}
                                         style={{
                                             padding: 0,
                                             overflow: 'hidden',
@@ -461,6 +461,8 @@ export function EventListPage() {
                                             cursor: 'pointer',
                                             transition: 'transform 0.2s, box-shadow 0.2s',
                                             border: '1px solid var(--border)',
+                                            textDecoration: 'none',
+                                            color: 'inherit',
                                         }}
                                         onMouseEnter={(el) => {
                                             el.currentTarget.style.transform = 'translateY(-3px)';
@@ -587,7 +589,7 @@ export function EventListPage() {
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 );
                             })}
                         </div>
@@ -769,11 +771,9 @@ export function EventListPage() {
                                         }}
                                     >
                                         {dayEvents.map((de) => (
-                                            <div
+                                            <Link
                                                 key={de.id}
-                                                onClick={() => {
-                                                    void navigate(`/events/${de.id}/dashboard`);
-                                                }}
+                                                to={`/events/${de.id}/dashboard`}
                                                 title={de.name}
                                                 style={{
                                                     background: 'var(--secondary-light)',
@@ -787,10 +787,12 @@ export function EventListPage() {
                                                     textOverflow: 'ellipsis',
                                                     overflow: 'hidden',
                                                     borderLeft: '2.5px solid var(--secondary)',
+                                                    textDecoration: 'none',
+                                                    display: 'block',
                                                 }}
                                             >
                                                 {de.name}
-                                            </div>
+                                            </Link>
                                         ))}
                                     </div>
                                 </div>
