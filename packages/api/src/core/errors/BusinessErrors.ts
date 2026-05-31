@@ -65,3 +65,12 @@ export class ForbiddenError extends BusinessError {
         super('No tienes permisos para acceder a este recurso.');
     }
 }
+
+export class EventNotFoundError extends BusinessError {
+    public readonly name = 'EventNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún evento con el ID ${id}.`);
+    }
+}

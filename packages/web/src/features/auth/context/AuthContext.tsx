@@ -1,5 +1,13 @@
 import { UserType } from '@eventflow/shared';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+    createContext,
+    useContext,
+    useState,
+    useEffect,
+    useCallback,
+    useMemo,
+    ReactNode,
+} from 'react';
 
 import { api } from '../../../services/axios';
 
@@ -43,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const loginUser = async (email: string, password: string) => {
+    const loginUser = useCallback(async (email: string, password: string) => {
         setIsLoading(true);
         try {
             await api.post('/auth/login', { email, password });
@@ -56,9 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
-    const logoutUser = async () => {
+    const logoutUser = useCallback(async () => {
         setIsLoading(true);
         try {
             await api.post('/auth/logout');
@@ -68,13 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setIsLoading(false);
         }
-    };
+    }, []);
 
-    return (
-        <AuthContext.Provider value={{ user, isLoading, loginUser, logoutUser }}>
-            {children}
-        </AuthContext.Provider>
+    const value = useMemo(
+        () => ({ user, isLoading, loginUser, logoutUser }),
+        [user, isLoading, loginUser, logoutUser],
     );
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
