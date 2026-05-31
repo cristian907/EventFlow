@@ -11,6 +11,7 @@ export default class User {
         public passwordHash: string,
         public phoneNumber: string,
         public role: UserRole,
+        public isActive: boolean,
         public createdBy: string | null,
         public createdAt: Date,
         public updatedAt: Date,

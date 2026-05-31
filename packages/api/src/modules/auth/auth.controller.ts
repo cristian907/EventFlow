@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
+import { requestContext } from '../../infrastructure/http/authMiddleware';
+
 import AuthService from './auth.service';
 
 export default class AuthController {
@@ -16,6 +18,32 @@ export default class AuthController {
                 sameSite: 'strict',
                 maxAge: this.authService.jwtExpiresInMs,
             }).json({ user });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    me = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const store = requestContext.getStore();
+            if (!store) {
+                res.status(401).json({ message: 'No hay una sesión autenticada.' });
+                return;
+            }
+            const user = await this.authService.getCurrentUser(store.userId);
+            res.json({ user });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    logout = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            res.clearCookie('access_token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+            }).json({ message: 'Logged out successfully' });
         } catch (error) {
             next(error);
         }

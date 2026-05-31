@@ -54,4 +54,12 @@ export default class AuthService {
     public getJWT(userId: string, role: UserRole): string {
         return sign({ userId, role }, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
     }
+
+    public async getCurrentUser(userId: string): Promise<UserType> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.isActive) {
+            throw new InvalidCredentialsError();
+        }
+        return AuthMapper.toUserType(user);
+    }
 }

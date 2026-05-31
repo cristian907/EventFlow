@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { login } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 interface UseLoginReturn {
     handleLogin: (email: string, password: string) => Promise<void>;
@@ -12,6 +12,7 @@ interface UseLoginReturn {
 export function useLogin(): UseLoginReturn {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { loginUser } = useAuth();
     const navigate = useNavigate();
 
     async function handleLogin(email: string, password: string): Promise<void> {
@@ -19,8 +20,8 @@ export function useLogin(): UseLoginReturn {
         setError(null);
 
         try {
-            await login(email, password);
-            await navigate('/404');
+            await loginUser(email, password);
+            void navigate('/dashboard');
         } catch (error: unknown) {
             const message = (error as { response?: { data?: { message?: string } } })?.response
                 ?.data?.message;

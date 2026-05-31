@@ -38,3 +38,30 @@ export class UnauthorizedError extends BusinessError {
         super('You are not authorized to access this resource.');
     }
 }
+
+export class DeactivateAdminError extends BusinessError {
+    public readonly name = 'DeactivateAdminError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('No está permitido desactivar a usuarios con rol global ADMINISTRADOR.');
+    }
+}
+
+export class UserNotFoundByIdError extends BusinessError {
+    public readonly name = 'UserNotFoundByIdError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún usuario con el ID ${id}.`);
+    }
+}
+
+export class ForbiddenError extends BusinessError {
+    public readonly name = 'ForbiddenError';
+    public readonly statusCode = 403;
+
+    constructor() {
+        super('No tienes permisos para acceder a este recurso.');
+    }
+}
