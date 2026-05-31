@@ -12,7 +12,11 @@ export default async function globalErrorHandler(
 ): Promise<void> {
     void _next;
     if (error instanceof BusinessError) {
-        logger.error(error.message, { name: error.name, stack: error.stack });
+        if (error.statusCode === 401) {
+            logger.info(`Unauthorized access attempt: ${error.message}`);
+        } else {
+            logger.error(error.message, { name: error.name, stack: error.stack });
+        }
         res.status(error.statusCode).json({
             name: error.name,
             message: error.message,
