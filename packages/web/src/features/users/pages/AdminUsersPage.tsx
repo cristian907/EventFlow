@@ -11,12 +11,21 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { api } from '../../../services/axios';
 import { useAuth } from '../../auth/context/AuthContext';
 
 export function AdminUsersPage() {
+    const navigate = useNavigate();
     const { user: currentUser } = useAuth();
+
+    // Frontend Route Guard: block non-admin users
+    useEffect(() => {
+        if (currentUser && currentUser.role !== 'ADMIN') {
+            void navigate('/dashboard', { replace: true });
+        }
+    }, [currentUser, navigate]);
 
     // API States
     const [users, setUsers] = useState<UserType[]>([]);
@@ -135,7 +144,7 @@ export function AdminUsersPage() {
                 className="page-header"
                 style={{
                     display: 'flex',
-                    justifyContent: 'between',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: 20,
                 }}
@@ -152,7 +161,7 @@ export function AdminUsersPage() {
                         style={{ fontSize: 13, color: 'var(--text-secondary)' }}
                     >
                         {total} cuentas en total · {users.filter((u) => u.role === 'ADMIN').length}{' '}
-                        administradores
+                        administradores (en esta página)
                     </p>
                 </div>
             </div>

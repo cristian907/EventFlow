@@ -57,7 +57,7 @@ export default class AuthService {
 
     public async getCurrentUser(userId: string): Promise<UserType> {
         const user = await this.userRepository.findById(userId);
-        if (!user) {
+        if (!user || !user.isActive) {
             throw new InvalidCredentialsError();
         }
         return AuthMapper.toUserType(user);

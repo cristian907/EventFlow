@@ -18,6 +18,12 @@ if (!saltRounds) {
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
+// NOTA DE DISEÑO (CREDANCIALES DE PRUEBA LOCALES):
+// De acuerdo con el comentario de Copilot, agregar múltiples usuarios con contraseñas
+// fijas hardcodeadas ('password1234') puede ser un riesgo en entornos de producción.
+// Sin embargo, este script de seeding se ejecuta EXCLUSIVAMENTE en entornos locales de desarrollo
+// y pruebas para simplificar la configuración inicial del proyecto por parte de otros desarrolladores.
+// No se emplea ni se expone en producción ni en servidores compartidos.
 const seedUsersData = [
     {
         fullName: 'Admin EventFlow',

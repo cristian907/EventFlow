@@ -56,3 +56,12 @@ export class UserNotFoundByIdError extends BusinessError {
         super(`No se encontró ningún usuario con el ID ${id}.`);
     }
 }
+
+export class ForbiddenError extends BusinessError {
+    public readonly name = 'ForbiddenError';
+    public readonly statusCode = 403;
+
+    constructor() {
+        super('No tienes permisos para acceder a este recurso.');
+    }
+}

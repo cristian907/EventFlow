@@ -5,7 +5,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 const { verify } = jwt;
 
 import { UserRole } from '../../core/entities/User';
-import { UnauthorizedError } from '../../core/errors/BusinessErrors';
+import { ForbiddenError, UnauthorizedError } from '../../core/errors/BusinessErrors';
 import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors';
 
 export interface RequestContext {
@@ -37,6 +37,18 @@ export default function authMiddleware(req: Request, _res: Response, next: NextF
 
 export function authorizeAdmin(_req: Request, _res: Response, next: NextFunction): void {
     const store = requestContext.getStore();
-    if (!store || store.role !== UserRole.Admin) return next(new UnauthorizedError());
+    if (!store || store.role !== UserRole.Admin) return next(new ForbiddenError());
     next();
 }
+
+/**
+ * NOTA DE DISEÑO SOBRE JWT STATELESS Y DESACTIVACIÓN DE USUARIOS:
+ * De acuerdo con el comentario de Copilot, el cambio de `isActive` en la base de datos no invalida
+ * sesiones JWT ya emitidas en el middleware de forma inmediata.
+ *
+ * Se ha decidido mantener la verificación de JWT totalmente stateless en `authMiddleware` (sin consultar
+ * la base de datos en cada petición) para evitar la sobrecarga y latencia en el servidor. La desactivación
+ * de la cuenta se verifica de manera perezosa (lazy) durante la comprobación de sesión activa en `/auth/me`
+ * (cerrando la sesión en el frontend inmediatamente) y se puede forzar en endpoints críticos si es necesario,
+ * lo cual es suficiente para el alcance del sistema y preserva un rendimiento óptimo.
+ */

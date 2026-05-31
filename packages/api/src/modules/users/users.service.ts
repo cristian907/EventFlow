@@ -40,8 +40,8 @@ export default class UsersService {
             throw new UserNotFoundByIdError(targetUserId);
         }
 
-        // Only allow deactivating/activating USER role users. Block ADMIN deactivation.
-        if (existingUser.role === UserRole.Admin) {
+        // Block ADMIN deactivation to avoid leaving the system without admins.
+        if (existingUser.role === UserRole.Admin && isActive === false) {
             throw new DeactivateAdminError();
         }
 

@@ -27,7 +27,7 @@ export default class AuthController {
         try {
             const store = requestContext.getStore();
             if (!store) {
-                res.status(401).json({ message: 'No authenticated session' });
+                res.status(401).json({ message: 'No hay una sesión autenticada.' });
                 return;
             }
             const user = await this.authService.getCurrentUser(store.userId);
