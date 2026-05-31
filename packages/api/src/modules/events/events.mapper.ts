@@ -2,6 +2,12 @@ import { EventType } from '@eventflow/shared';
 
 import Event from '../../core/entities/Event';
 
+/** Converts a Date to ISO string. Returns null if the date is invalid (e.g. corrupted DB value). */
+function safeIso(date: Date): string | null {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return null;
+    return date.toISOString();
+}
+
 export default class EventsMapper {
     public static toEventType(event: Event): EventType {
         return {
@@ -10,15 +16,15 @@ export default class EventsMapper {
             imageUrl: event.imageUrl,
             name: event.name,
             description: event.description,
-            date: event.date.toISOString(),
-            startTime: event.startTime.toISOString(),
-            endTime: event.endTime.toISOString(),
+            date: safeIso(event.date) ?? '',
+            startTime: safeIso(event.startTime) ?? '',
+            endTime: safeIso(event.endTime) ?? '',
             location: event.location,
             address: event.address,
             maxCapacity: event.maxCapacity,
             status: event.status,
-            createdAt: event.createdAt.toISOString(),
-            updatedAt: event.updatedAt.toISOString(),
+            createdAt: safeIso(event.createdAt) ?? '',
+            updatedAt: safeIso(event.updatedAt) ?? '',
         };
     }
 }

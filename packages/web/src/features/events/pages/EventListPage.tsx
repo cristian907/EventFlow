@@ -116,17 +116,20 @@ export function EventListPage() {
         setIsSubmitting(true);
         setError(null);
         try {
-            // Helper to merge date and time strings into valid ISO format
-            const eventDate = new Date(data.date as string);
-            const dateStr = eventDate.toISOString().split('T')[0];
+            // Use the raw YYYY-MM-DD date directly — avoid new Date() which interprets it as UTC
+            // and can shift the day backwards in negative UTC offsets (e.g. UTC-4).
+            const dateStr = data.date as string; // "YYYY-MM-DD" from <input type="date">
+            const startTimeStr = data.startTime as string; // "HH:MM" from <input type="time">
+            const endTimeStr = data.endTime as string;
 
-            const startTimeISO = new Date(`${dateStr}T${data.startTime as string}`).toISOString();
-            const endTimeISO = new Date(`${dateStr}T${data.endTime as string}`).toISOString();
+            const dateISO = new Date(`${dateStr}T12:00:00`).toISOString();
+            const startTimeISO = new Date(`${dateStr}T${startTimeStr}:00`).toISOString();
+            const endTimeISO = new Date(`${dateStr}T${endTimeStr}:00`).toISOString();
 
             await eventService.createEvent({
                 name: data.name as string,
                 description: data.description as string,
-                date: eventDate.toISOString(),
+                date: dateISO,
                 startTime: startTimeISO,
                 endTime: endTimeISO,
                 location: data.location as string,
@@ -1091,7 +1094,11 @@ export function EventListPage() {
                                 <button
                                     type="button"
                                     className="btn btn-ghost"
-                                    onClick={() => setIsCreateOpen(false)}
+                                    onClick={() => {
+                                        setIsCreateOpen(false);
+                                        reset();
+                                        setError(null);
+                                    }}
                                     disabled={isSubmitting}
                                 >
                                     Cancelar
