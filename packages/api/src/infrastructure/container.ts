@@ -1,5 +1,6 @@
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAuthModule } from '../modules/auth';
+import { createUsersModule } from '../modules/users';
 
 import PrismaUserRepository from './repositories/PrismaUserRepository';
 
@@ -9,4 +10,5 @@ export const repositories = {
 
 export const modules = {
     auth: createAuthModule(repositories.user),
+    users: createUsersModule(repositories.user),
 };

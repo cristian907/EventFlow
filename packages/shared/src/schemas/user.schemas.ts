@@ -15,3 +15,9 @@ export const UserToLoginSchema = z.object({
 });
 
 export type UserToLogin = z.infer<typeof UserToLoginSchema>;
+
+export const UpdateUserRoleSchema = z.object({
+    role: z.enum(['ADMIN', 'USER']),
+});
+
+export type UpdateUserRole = z.infer<typeof UpdateUserRoleSchema>;

@@ -8,9 +8,9 @@ export default async function globalErrorHandler(
     error: Error,
     _req: Request,
     res: Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _next: NextFunction,
 ): Promise<void> {
+    void _next;
     if (error instanceof BusinessError) {
         logger.error(error.message, { name: error.name, stack: error.stack });
         res.status(error.statusCode).json({

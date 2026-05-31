@@ -1,49 +1,49 @@
 :root {
-  /* ===== Backgrounds ===== */
-  --bg-base:     #F4F1EF;
-  --bg-surface:  #F9F7F5;
-  --bg-elevated: #FFFFFF;
+    /* ===== Backgrounds ===== */
+    --bg-base: #f4f1ef;
+    --bg-surface: #f9f7f5;
+    --bg-elevated: #ffffff;
 
-  /* ===== Text ===== */
-  --text-primary:   #201D1C;
-  --text-secondary: #7A736F;
-  --text-disabled:  #B0A9A5;
+    /* ===== Text ===== */
+    --text-primary: #201d1c;
+    --text-secondary: #7a736f;
+    --text-disabled: #b0a9a5;
 
-  /* ===== Border ===== */
-  --border: #E4E1DE;
+    /* ===== Border ===== */
+    --border: #e4e1de;
 
-  /* ===== Primary (Coral) ===== */
-  --primary:       #ED786A;
-  --primary-dark:  #D4574A;
-  --primary-hover: #E5655A;
-  --primary-light: #FCEEED;
+    /* ===== Primary (Coral) ===== */
+    --primary: #ed786a;
+    --primary-dark: #d4574a;
+    --primary-hover: #e5655a;
+    --primary-light: #fceeed;
 
-  /* ===== Secondary (Teal) ===== */
-  --secondary:       #4A9E8E;
-  --secondary-dark:  #357A6D;
-  --secondary-light: #E6F5F1;
+    /* ===== Secondary (Teal) ===== */
+    --secondary: #4a9e8e;
+    --secondary-dark: #357a6d;
+    --secondary-light: #e6f5f1;
 
-  /* ===== Danger ===== */
-  --danger:       #D64545;
-  --danger-light: #FDEEEE;
+    /* ===== Danger ===== */
+    --danger: #d64545;
+    --danger-light: #fdeeee;
 
-  /* ===== Success ===== */
-  --success:       #2D8A6E;
-  --success-light: #E7F6F0;
+    /* ===== Success ===== */
+    --success: #2d8a6e;
+    --success-light: #e7f6f0;
 
-  /* ===== Warning ===== */
-  --warning:       #D4933D;
-  --warning-light: #FDF4E7;
+    /* ===== Warning ===== */
+    --warning: #d4933d;
+    --warning-light: #fdf4e7;
 
-  /* ===== Shadows ===== */
-  --shadow-sm: 0 1px 2px rgba(32, 29, 28, 0.06), 0 1px 3px rgba(32, 29, 28, 0.08);
-  --shadow-md: 0 4px 12px rgba(32, 29, 28, 0.08), 0 2px 6px rgba(32, 29, 28, 0.06);
+    /* ===== Shadows ===== */
+    --shadow-sm: 0 1px 2px rgba(32, 29, 28, 0.06), 0 1px 3px rgba(32, 29, 28, 0.08);
+    --shadow-md: 0 4px 12px rgba(32, 29, 28, 0.08), 0 2px 6px rgba(32, 29, 28, 0.06);
 
-  /* ===== Radius ===== */
-  --r-lg: 12px;
+    /* ===== Radius ===== */
+    --r-lg: 12px;
 
-  /* ===== Typography ===== */
-  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Inter', system-ui, sans-serif;
-  --font-mono:  'JetBrains Mono', ui-monospace, monospace;
+    /* ===== Typography ===== */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }

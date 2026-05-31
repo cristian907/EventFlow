@@ -38,3 +38,23 @@ export class UnauthorizedError extends BusinessError {
         super('You are not authorized to access this resource.');
     }
 }
+
+export class SelfDegradeError extends BusinessError {
+    public readonly name = 'SelfDegradeError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super(
+            'No puedes cambiar tu propio rol de ADMIN a USER para evitar dejar el sistema sin administradores.',
+        );
+    }
+}
+
+export class UserNotFoundByIdError extends BusinessError {
+    public readonly name = 'UserNotFoundByIdError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún usuario con el ID ${id}.`);
+    }
+}

@@ -12,6 +12,9 @@ import {
 const toDomainRole = (role: PrismaUserRole): UserRole =>
     role === PrismaUserRole.ADMIN ? UserRole.Admin : UserRole.User;
 
+const toPrismaRole = (role: UserRole): PrismaUserRole =>
+    role === UserRole.Admin ? PrismaUserRole.ADMIN : PrismaUserRole.USER;
+
 export default class PrismaUserRepository implements IUserRepository {
     constructor(private prismaClient: PrismaClient) {}
 
@@ -99,5 +102,52 @@ export default class PrismaUserRepository implements IUserRepository {
         await this.prismaClient.user.delete({
             where: { id },
         });
+    }
+
+    async findAndCount(options: {
+        page: number;
+        limit: number;
+        search?: string;
+        role?: UserRole;
+    }): Promise<{ users: User[]; total: number }> {
+        const { page, limit, search, role } = options;
+        const skip = (page - 1) * limit;
+        const take = limit;
+
+        const where: Prisma.UserWhereInput = {};
+
+        if (role) {
+            where.role = toPrismaRole(role);
+        }
+
+        if (search) {
+            where.OR = [
+                { fullName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+
+        const [prismaUsers, total] = await Promise.all([
+            this.prismaClient.user.findMany({
+                where,
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prismaClient.user.count({ where }),
+        ]);
+
+        return {
+            users: prismaUsers.map((pu) => this.mapToUserEntity(pu)),
+            total,
+        };
+    }
+
+    async updateRole(id: string, role: UserRole): Promise<User> {
+        const updatedUser = await this.prismaClient.user.update({
+            where: { id },
+            data: { role: toPrismaRole(role) },
+        });
+        return this.mapToUserEntity(updatedUser);
     }
 }
