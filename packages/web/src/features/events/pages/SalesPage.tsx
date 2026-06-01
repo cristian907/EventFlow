@@ -24,7 +24,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Resolver } from 'react-hook-form';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
@@ -322,9 +322,9 @@ function NewSaleModal({
         name: 'payments',
     });
 
-    const watchTicketTypeId = form.watch('ticketTypeId');
-    const watchQuantity = form.watch('quantity');
-    const watchPayments = form.watch('payments');
+    const watchTicketTypeId = useWatch({ control: form.control, name: 'ticketTypeId' });
+    const watchQuantity = useWatch({ control: form.control, name: 'quantity' });
+    const watchPayments = useWatch({ control: form.control, name: 'payments' });
 
     useEffect(() => {
         async function loadFormData() {

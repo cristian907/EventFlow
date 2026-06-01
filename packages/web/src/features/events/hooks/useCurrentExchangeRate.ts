@@ -40,7 +40,6 @@ export function useCurrentExchangeRate(
                     setRate(null);
                     setError(true);
                 }
-            }
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
