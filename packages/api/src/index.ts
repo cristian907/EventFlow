@@ -43,6 +43,27 @@ for (const [path, router] of Object.entries(modules)) {
 
 app.use(globalErrorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     logger.info(`API server running on http://localhost:${PORT}`);
 });
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Exiting...`);
+        process.exit(1);
+    } else {
+        logger.error('Server error', { err });
+        throw err;
+    }
+});
+
+const shutdown = (signal: string): void => {
+    logger.info(`Received ${signal}. Closing server...`);
+    server.close(() => {
+        logger.info('Server closed.');
+        process.exit(0);
+    });
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -196,10 +196,17 @@ function CreateModal({
     const onSubmit = async (data: Record<string, unknown>) => {
         try {
             setApiError(null);
-            await ticketTypeService.create(
-                eventId,
-                data as Parameters<typeof ticketTypeService.create>[1],
-            );
+            const payload = {
+                ...data,
+                saleStartsAt: data.saleStartsAt
+                    ? new Date(String(data.saleStartsAt)).toISOString()
+                    : undefined,
+                saleEndsAt: data.saleEndsAt
+                    ? new Date(String(data.saleEndsAt)).toISOString()
+                    : undefined,
+            } as Parameters<typeof ticketTypeService.create>[1];
+
+            await ticketTypeService.create(eventId, payload);
             onCreated();
         } catch (err) {
             setApiError(getApiError(err));
@@ -382,11 +389,17 @@ function EditModal({
     const onSubmit = async (data: Record<string, unknown>) => {
         try {
             setApiError(null);
-            await ticketTypeService.update(
-                eventId,
-                ticketType.id,
-                data as Parameters<typeof ticketTypeService.update>[2],
-            );
+            const payload = {
+                ...data,
+                saleStartsAt: data.saleStartsAt
+                    ? new Date(String(data.saleStartsAt)).toISOString()
+                    : null,
+                saleEndsAt: data.saleEndsAt
+                    ? new Date(String(data.saleEndsAt)).toISOString()
+                    : null,
+            } as Parameters<typeof ticketTypeService.update>[2];
+
+            await ticketTypeService.update(eventId, ticketType.id, payload);
             onUpdated();
         } catch (err) {
             setApiError(getApiError(err));

@@ -111,6 +111,7 @@ pnpm run dev
 
 1. **Make changes to shared package:**
    - Edit `packages/shared/src/index.ts`
+   - Run `pnpm run build:shared` to rebuild the package
    - API and web will auto-reload (nodemon watches shared)
 
 2. **Make changes to API:**
@@ -120,3 +121,71 @@ pnpm run dev
 3. **Make changes to web:**
    - Edit files in `packages/web/src/`
    - Browser auto-refreshes via Vite HMR
+
+## Database
+
+### Initial setup
+After installing dependencies and configuring `.env`, run:
+```bash
+# Generate the Prisma client
+pnpm --filter api exec prisma generate
+
+# Apply all migrations
+pnpm --filter api exec prisma migrate dev
+
+# Seed the database with test users
+pnpm --filter api exec tsx prisma/seedUser.ts
+```
+
+### Reset the database from scratch
+Drops all tables, re-applies every migration and runs the seed:
+```bash
+pnpm --filter api exec prisma migrate reset
+```
+
+### After modifying the Prisma schema (`schema.prisma`)
+```bash
+# Create a new migration from your schema changes
+pnpm --filter api exec prisma migrate dev --name describe_your_change
+
+# If the generated Prisma client is out of date
+pnpm --filter api exec prisma generate
+```
+
+### Switching branches with different schemas
+When you switch to a branch that has different database tables or columns, the generated Prisma client and the database may be out of sync. Run:
+```bash
+# 1. Regenerate the Prisma client for the current branch's schema
+pnpm --filter api exec prisma generate
+
+# 2. Reset the database to match the current branch's migrations
+pnpm --filter api exec prisma migrate reset
+
+# 3. Rebuild shared package (if the branch has schema/type changes)
+pnpm run build:shared
+```
+
+## Running from scratch (full checklist)
+
+```bash
+# 1. Clone and install
+git clone git@github.com:cristian907/EventFlow.git
+cd EventFlow
+pnpm install
+
+# 2. Environment variables
+cp packages/api/.env.example packages/api/.env
+cp packages/web/.env.example packages/web/.env
+
+# 3. Build shared package
+pnpm run build:shared
+
+# 4. Setup database
+pnpm --filter api exec prisma generate
+pnpm --filter api exec prisma migrate dev
+pnpm --filter api exec tsx prisma/seedUser.ts
+
+# 5. Start development servers
+pnpm run dev
+```
+
