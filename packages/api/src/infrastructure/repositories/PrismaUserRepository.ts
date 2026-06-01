@@ -33,7 +33,7 @@ export default class PrismaUserRepository implements IUserRepository {
         );
     }
 
-    async create(user: UserToCreateType): Promise<User> {
+    async create(user: UserToCreateType & { createdBy?: string }): Promise<User> {
         try {
             const createdUser = await this.prismaClient.user.create({
                 data: {
@@ -41,6 +41,7 @@ export default class PrismaUserRepository implements IUserRepository {
                     passwordHash: user.password,
                     fullName: user.fullName,
                     phoneNumber: user.phoneNumber,
+                    createdBy: user.createdBy ?? null,
                 },
             });
             return this.mapToUserEntity(createdUser);

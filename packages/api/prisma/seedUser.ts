@@ -2,19 +2,20 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
 
-import { EnvironmentVariableError } from '../src/core/errors/InternalServerErrors';
-import { PrismaClient } from '../src/generated/prisma/client';
+import { EnvironmentVariableError } from '../src/core/errors/InternalServerErrors.js';
+import { PrismaClient } from '../src/generated/prisma/client.js';
 
 const connectionString = process.env.DATABASE_URL;
-const saltRounds = process.env.BCRYPT_SALT_ROUNDS;
+const saltRoundsStr = process.env.BCRYPT_SALT_ROUNDS;
 
 if (!connectionString) {
     throw new EnvironmentVariableError('DATABASE_URL');
 }
-if (!saltRounds) {
+if (!saltRoundsStr) {
     throw new EnvironmentVariableError('BCRYPT_SALT_ROUNDS');
 }
 
+const saltRoundsNum = parseInt(saltRoundsStr, 10);
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
@@ -101,7 +102,7 @@ async function seed(): Promise<void> {
     console.log('Starting seed process for 10 users...');
 
     for (const userData of seedUsersData) {
-        const passwordHash = await bcrypt.hash(userData.password, parseInt(saltRounds!, 10));
+        const passwordHash = await bcrypt.hash(userData.password, saltRoundsNum);
 
         const user = await prisma.user.upsert({
             where: { email: userData.email },

@@ -9,6 +9,7 @@ import { EventDashboardPage } from './features/events/pages/EventDashboardPage';
 import { EventDetailPage } from './features/events/pages/EventDetailPage';
 import { EventListPage } from './features/events/pages/EventListPage';
 import { EventPlaceholderPage } from './features/events/pages/EventPlaceholderPage';
+import { EventStaffPage } from './features/events/pages/EventStaffPage';
 import { TicketTypesPage } from './features/events/pages/TicketTypesPage';
 import { AdminUsersPage } from './features/users/pages/AdminUsersPage';
 
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'staff',
-                        element: <EventPlaceholderPage title="Staff y Usuarios" />,
+                        element: <EventStaffPage />,
                     },
                     {
                         path: 'tickets',
