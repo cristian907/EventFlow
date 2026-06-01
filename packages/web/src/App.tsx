@@ -11,6 +11,7 @@ import { EventDetailPage } from './features/events/pages/EventDetailPage';
 import { EventListPage } from './features/events/pages/EventListPage';
 import { EventPlaceholderPage } from './features/events/pages/EventPlaceholderPage';
 import { EventStaffPage } from './features/events/pages/EventStaffPage';
+import SalesPage from './features/events/pages/SalesPage';
 import { TicketTypesPage } from './features/events/pages/TicketTypesPage';
 import { AdminUsersPage } from './features/users/pages/AdminUsersPage';
 
@@ -60,7 +61,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'sales',
-                        element: <EventPlaceholderPage title="Registro de Ventas" />,
+                        element: <SalesPage />,
                     },
                     {
                         path: 'door-check',
