@@ -945,7 +945,6 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
             dispatch({ type: 'ERROR', message: getApiErrorMessage(err) });
         }
     }, [eventId]);
-    }, [eventId]);
 
     useEffect(() => {
         void fetchCurrent();
