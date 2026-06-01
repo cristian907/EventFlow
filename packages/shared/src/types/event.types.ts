@@ -10,7 +10,8 @@ export interface EventType {
     imageUrl: string;
     name: string;
     description: string;
-    date: Date | string;
+    startDate: Date | string;
+    endDate: Date | string;
     startTime: Date | string;
     endTime: Date | string;
     location: string;

@@ -17,7 +17,8 @@ export default class EventsService {
             'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80';
 
         // Parse date strings to JS Date objects
-        const parsedDate = new Date(eventData.date);
+        const parsedStartDate = new Date(eventData.startDate);
+        const parsedEndDate = new Date(eventData.endDate);
         const parsedStartTime = new Date(eventData.startTime);
         const parsedEndTime = new Date(eventData.endTime);
 
@@ -25,7 +26,8 @@ export default class EventsService {
             organizerId,
             name: eventData.name,
             description: eventData.description,
-            date: parsedDate,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
             startTime: parsedStartTime,
             endTime: parsedEndTime,
             location: eventData.location,

@@ -101,7 +101,8 @@ export function EventListPage() {
         defaultValues: {
             name: '',
             description: '',
-            date: '',
+            startDate: '',
+            endDate: '',
             startTime: '',
             endTime: '',
             location: '',
@@ -117,18 +118,21 @@ export function EventListPage() {
         try {
             // Use the raw YYYY-MM-DD date directly — avoid new Date() which interprets it as UTC
             // and can shift the day backwards in negative UTC offsets (e.g. UTC-4).
-            const dateStr = data.date as string; // "YYYY-MM-DD" from <input type="date">
-            const startTimeStr = data.startTime as string; // "HH:MM" from <input type="time">
+            const startDateStr = data.startDate as string;
+            const endDateStr = data.endDate as string;
+            const startTimeStr = data.startTime as string;
             const endTimeStr = data.endTime as string;
 
-            const dateISO = new Date(`${dateStr}T12:00:00`).toISOString();
-            const startTimeISO = new Date(`${dateStr}T${startTimeStr}:00`).toISOString();
-            const endTimeISO = new Date(`${dateStr}T${endTimeStr}:00`).toISOString();
+            const startDateISO = new Date(`${startDateStr}T12:00:00`).toISOString();
+            const endDateISO = new Date(`${endDateStr}T12:00:00`).toISOString();
+            const startTimeISO = new Date(`${startDateStr}T${startTimeStr}:00`).toISOString();
+            const endTimeISO = new Date(`${endDateStr}T${endTimeStr}:00`).toISOString();
 
             await eventService.createEvent({
                 name: data.name as string,
                 description: data.description as string,
-                date: dateISO,
+                startDate: startDateISO,
+                endDate: endDateISO,
                 startTime: startTimeISO,
                 endTime: endTimeISO,
                 location: data.location as string,
@@ -442,11 +446,14 @@ export function EventListPage() {
                         >
                             {events.map((e) => {
                                 const statusInfo = getStatusStyle(e.status);
-                                const dateFormatted = new Date(e.date).toLocaleDateString('es-ES', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                });
+                                const dateFormatted = new Date(e.startDate).toLocaleDateString(
+                                    'es-ES',
+                                    {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                    },
+                                );
 
                                 return (
                                     <Link
@@ -723,7 +730,7 @@ export function EventListPage() {
 
                             // Find events occurring on this specific day
                             const dayEvents = events.filter((e) => {
-                                const ed = new Date(e.date);
+                                const ed = new Date(e.startDate);
                                 return (
                                     ed.getDate() === day &&
                                     ed.getMonth() === month &&
@@ -807,7 +814,13 @@ export function EventListPage() {
                 <div className="modal-backdrop" onClick={() => setIsCreateOpen(false)}>
                     <div
                         className="modal"
-                        style={{ maxWidth: 540, width: '90%', padding: '24px' }}
+                        style={{
+                            maxWidth: 540,
+                            width: '90%',
+                            padding: '24px',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                        }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div
@@ -901,21 +914,27 @@ export function EventListPage() {
                                     )}
                                 </div>
 
-                                {/* Date & Time in a row */}
-                                <div style={{ display: 'flex', gap: 12 }}>
+                                {/* Date & Time */}
+                                <div
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: 12,
+                                    }}
+                                >
                                     <div style={{ flex: 1 }}>
                                         <label
                                             className="text-small fw-600"
                                             style={{ display: 'block', marginBottom: 4 }}
                                         >
-                                            Fecha *
+                                            Fecha Inicio *
                                         </label>
                                         <input
                                             className="input"
                                             type="date"
-                                            {...register('date')}
+                                            {...register('startDate')}
                                         />
-                                        {errors.date && (
+                                        {errors.startDate && (
                                             <p
                                                 style={{
                                                     color: 'var(--danger)',
@@ -923,7 +942,7 @@ export function EventListPage() {
                                                     marginTop: 4,
                                                 }}
                                             >
-                                                {errors.date.message}
+                                                {errors.startDate.message as string}
                                             </p>
                                         )}
                                     </div>
@@ -947,7 +966,31 @@ export function EventListPage() {
                                                     marginTop: 4,
                                                 }}
                                             >
-                                                {errors.startTime.message}
+                                                {errors.startTime.message as string}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label
+                                            className="text-small fw-600"
+                                            style={{ display: 'block', marginBottom: 4 }}
+                                        >
+                                            Fecha Fin *
+                                        </label>
+                                        <input
+                                            className="input"
+                                            type="date"
+                                            {...register('endDate')}
+                                        />
+                                        {errors.endDate && (
+                                            <p
+                                                style={{
+                                                    color: 'var(--danger)',
+                                                    fontSize: 11.5,
+                                                    marginTop: 4,
+                                                }}
+                                            >
+                                                {errors.endDate.message as string}
                                             </p>
                                         )}
                                     </div>
@@ -971,7 +1014,7 @@ export function EventListPage() {
                                                     marginTop: 4,
                                                 }}
                                             >
-                                                {errors.endTime.message}
+                                                {errors.endTime.message as string}
                                             </p>
                                         )}
                                     </div>

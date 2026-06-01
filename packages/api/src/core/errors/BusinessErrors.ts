@@ -74,3 +74,45 @@ export class EventNotFoundError extends BusinessError {
         super(`No se encontró ningún evento con el ID ${id}.`);
     }
 }
+
+export class TicketTypeNotFoundError extends BusinessError {
+    public readonly name = 'TicketTypeNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún tipo de entrada con el ID ${id}.`);
+    }
+}
+
+export class CapacityExceededError extends BusinessError {
+    public readonly name = 'CapacityExceededError';
+    public readonly statusCode = 400;
+
+    constructor(maxCapacity: number, currentTotal: number, requested: number) {
+        super(
+            `La suma de entradas (${currentTotal} existentes + ${requested} solicitadas = ${currentTotal + requested}) supera la capacidad máxima del evento (${maxCapacity}).`,
+        );
+    }
+}
+
+export class InvalidQuantityError extends BusinessError {
+    public readonly name = 'InvalidQuantityError';
+    public readonly statusCode = 400;
+
+    constructor(soldQuantity: number) {
+        super(
+            `La cantidad total no puede ser menor que las entradas ya vendidas (${soldQuantity}).`,
+        );
+    }
+}
+
+export class InvalidSaleWindowError extends BusinessError {
+    public readonly name = 'InvalidSaleWindowError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super(
+            'La fecha de fin de venta no puede ser posterior a la fecha y hora de finalización del evento.',
+        );
+    }
+}

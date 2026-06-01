@@ -30,7 +30,8 @@ export default class PrismaEventRepository implements IEventRepository {
             prismaEvent.imageUrl,
             prismaEvent.name,
             prismaEvent.description,
-            prismaEvent.date,
+            prismaEvent.startDate,
+            prismaEvent.endDate,
             prismaEvent.startTime,
             prismaEvent.endTime,
             prismaEvent.location,
@@ -46,7 +47,8 @@ export default class PrismaEventRepository implements IEventRepository {
         organizerId: string;
         name: string;
         description: string;
-        date: Date;
+        startDate: Date;
+        endDate: Date;
         startTime: Date;
         endTime: Date;
         location: string;
@@ -59,7 +61,8 @@ export default class PrismaEventRepository implements IEventRepository {
                 organizerId: eventData.organizerId,
                 name: eventData.name,
                 description: eventData.description,
-                date: eventData.date,
+                startDate: eventData.startDate,
+                endDate: eventData.endDate,
                 startTime: eventData.startTime,
                 endTime: eventData.endTime,
                 location: eventData.location,
@@ -128,7 +131,7 @@ export default class PrismaEventRepository implements IEventRepository {
                 where,
                 skip,
                 take,
-                orderBy: { date: 'asc' },
+                orderBy: { startDate: 'asc' },
             }),
             this.prismaClient.event.count({ where }),
         ]);

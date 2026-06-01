@@ -60,12 +60,23 @@ export function EventDashboardPage() {
     if (!currentEvent) return null;
 
     // Dates formatting
-    const eventDate = new Date(currentEvent.date).toLocaleDateString('es-ES', {
+    const eventStartDate = new Date(currentEvent.startDate).toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
         weekday: 'long',
     });
+
+    const eventEndDate = new Date(currentEvent.endDate).toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long',
+    });
+
+    const sameDay =
+        new Date(currentEvent.startDate).toDateString() ===
+        new Date(currentEvent.endDate).toDateString();
 
     const startTime = new Date(currentEvent.startTime).toLocaleTimeString('es-ES', {
         hour: '2-digit',
@@ -292,7 +303,11 @@ export function EventDashboardPage() {
                                         icon={faCalendarAlt}
                                         style={{ color: 'var(--primary)', width: 16 }}
                                     />
-                                    <span>{eventDate}</span>
+                                    <span>
+                                        {sameDay
+                                            ? eventStartDate
+                                            : `${eventStartDate} - ${eventEndDate}`}
+                                    </span>
                                 </div>
 
                                 <div
