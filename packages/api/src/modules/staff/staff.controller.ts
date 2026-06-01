@@ -10,7 +10,7 @@ export default class StaffController {
     searchUserByEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const email = String(req.query.email || '').trim();
-            if (!email) {
+            if (!email || email.length < 3) {
                 res.json({ exists: false, suggestions: [] });
                 return;
             }
@@ -57,7 +57,7 @@ export default class StaffController {
             const limit = parseInt(req.query.limit as string, 10) || 10;
             const search = req.query.search ? String(req.query.search) : undefined;
 
-            const { members, total } = await this.staffService.list(eventId, {
+            const { members, total, activeAdminsCount } = await this.staffService.list(eventId, {
                 page,
                 limit,
                 search,
@@ -71,6 +71,7 @@ export default class StaffController {
                 page,
                 limit,
                 totalPages,
+                activeAdminsCount,
             });
         } catch (error) {
             next(error);

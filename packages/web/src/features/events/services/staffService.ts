@@ -8,6 +8,7 @@ export interface ListStaffResponse {
     page: number;
     limit: number;
     totalPages: number;
+    activeAdminsCount: number;
 }
 
 export const staffService = {

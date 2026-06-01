@@ -39,6 +39,7 @@ export function EventStaffPage() {
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
+    const [activeAdminsCount, setActiveAdminsCount] = useState(0);
 
     // Filter/Search States
     const [search, setSearch] = useState('');
@@ -197,6 +198,7 @@ export function EventStaffPage() {
             setMembers(response.members);
             setTotal(response.total);
             setTotalPages(response.totalPages);
+            setActiveAdminsCount(response.activeAdminsCount);
         } catch (err: unknown) {
             const msg =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -328,11 +330,6 @@ export function EventStaffPage() {
     const isSelf = (member: StaffMemberType) => {
         return currentUser?.id === member.userId;
     };
-
-    // Count how many active admins/organizers are currently in the list
-    const activeAdminsCount = members.filter(
-        (m) => m.status === 'active' && (m.role === 'admin' || m.role === 'organizer'),
-    ).length;
 
     return (
         <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
@@ -570,10 +567,28 @@ export function EventStaffPage() {
                                         </td>
                                         <td>
                                             <span
-                                                className={`badge dot ${m.status === 'active' ? 'success' : 'default'}`}
+                                                className={`badge dot ${m.status === 'active' && m.user.isActive !== false ? 'success' : 'default'}`}
                                             >
-                                                {m.status === 'active' ? 'Activo' : 'Inactivo'}
+                                                {m.status === 'active' && m.user.isActive !== false
+                                                    ? 'Activo'
+                                                    : 'Inactivo'}
                                             </span>
+                                            {m.user.isActive === false && (
+                                                <span
+                                                    className="badge danger"
+                                                    style={{
+                                                        marginLeft: 6,
+                                                        fontSize: 10,
+                                                        background: 'var(--danger)',
+                                                        color: '#fff',
+                                                        padding: '2px 6px',
+                                                        borderRadius: 'var(--r-xs)',
+                                                    }}
+                                                    title="Esta cuenta de usuario ha sido desactivada globalmente"
+                                                >
+                                                    Suspendido
+                                                </span>
+                                            )}
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: 6 }}>

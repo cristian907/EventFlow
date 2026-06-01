@@ -152,3 +152,14 @@ export class PasswordRequiredError extends BusinessError {
         super('La contraseña es obligatoria para crear una cuenta nueva.');
     }
 }
+
+export class ModifyOrganizerError extends BusinessError {
+    public readonly name = 'ModifyOrganizerError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super(
+            'No está permitido modificar o desactivar al creador/organizador principal del evento.',
+        );
+    }
+}

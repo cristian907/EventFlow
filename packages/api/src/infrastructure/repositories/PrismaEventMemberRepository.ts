@@ -26,6 +26,7 @@ export default class PrismaEventMemberRepository implements IEventMemberReposito
                 fullName: m.user.fullName,
                 email: m.user.email,
                 phoneNumber: m.user.phoneNumber,
+                isActive: m.user.isActive,
             },
         };
     }

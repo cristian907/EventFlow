@@ -8,30 +8,43 @@ import {
     EventMemberNotFoundError,
     RemoveLastAdminError,
     PasswordRequiredError,
+    ModifyOrganizerError,
 } from '../../core/errors/BusinessErrors';
+import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors';
 import IEventMemberRepository from '../../core/interfaces/repositories/IEventMemberRepository';
 import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import IUserRepository from '../../core/interfaces/repositories/IUserRepository';
 
 export default class StaffService {
+    private readonly saltRounds: number;
+
     constructor(
         private eventMemberRepository: IEventMemberRepository,
         private userRepository: IUserRepository,
         private eventRepository: IEventRepository,
-    ) {}
+    ) {
+        const { BCRYPT_SALT_ROUNDS } = process.env;
+        if (!BCRYPT_SALT_ROUNDS) {
+            throw new EnvironmentVariableError('BCRYPT_SALT_ROUNDS');
+        }
+        this.saltRounds = parseInt(BCRYPT_SALT_ROUNDS, 10);
+    }
 
     public async list(
         eventId: string,
         options: { page: number; limit: number; search?: string },
-    ): Promise<{ members: StaffMemberType[]; total: number }> {
+    ): Promise<{ members: StaffMemberType[]; total: number; activeAdminsCount: number }> {
         const event = await this.eventRepository.findById(eventId);
         if (!event) throw new EventNotFoundError(eventId);
 
-        return this.eventMemberRepository.listByEvent(eventId, options);
+        const { members, total } = await this.eventMemberRepository.listByEvent(eventId, options);
+        const activeAdminsCount = await this.eventMemberRepository.countActiveAdmins(eventId);
+
+        return { members, total, activeAdminsCount };
     }
 
-    public async searchUsers(search: string): Promise<{ users: User[]; total: number }> {
-        return this.userRepository.findAndCount({ page: 1, limit: 10, search });
+    public async searchUsers(email: string): Promise<{ users: User[]; total: number }> {
+        return this.userRepository.findAndCount({ page: 1, limit: 10, emailSearch: email });
     }
 
     public async create(
@@ -48,8 +61,7 @@ export default class StaffService {
                 throw new PasswordRequiredError();
             }
             // Create user
-            const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-            const passwordHash = await hash(data.password, saltRounds);
+            const passwordHash = await hash(data.password, this.saltRounds);
 
             user = await this.userRepository.create({
                 fullName: data.fullName,
@@ -63,15 +75,7 @@ export default class StaffService {
         // Check if member already exists
         const existingMember = await this.eventMemberRepository.findMember(eventId, user.id);
         if (existingMember) {
-            if (existingMember.status === 'active') {
-                throw new DuplicateMemberError();
-            } else {
-                // Reactivate and set role
-                return this.eventMemberRepository.update(existingMember.id, {
-                    status: 'active',
-                    role: data.role,
-                });
-            }
+            throw new DuplicateMemberError();
         }
 
         return this.eventMemberRepository.create(eventId, user.id, data.role);
@@ -98,8 +102,12 @@ export default class StaffService {
         const member = await this.eventMemberRepository.findMemberById(eventId, memberId);
         if (!member) throw new EventMemberNotFoundError(memberId);
 
-        // Guard against removing last admin/organizer
-        const isCurrentlyAdmin = member.role === 'admin' || member.role === 'organizer';
+        if (member.role === 'organizer') {
+            throw new ModifyOrganizerError();
+        }
+
+        // Guard against removing last admin
+        const isCurrentlyAdmin = member.role === 'admin';
         const willNoLongerBeAdmin =
             (data.role && data.role !== 'admin') || data.status === 'inactive';
 
@@ -120,7 +128,11 @@ export default class StaffService {
         const member = await this.eventMemberRepository.findMemberById(eventId, memberId);
         if (!member) throw new EventMemberNotFoundError(memberId);
 
-        const isCurrentlyAdmin = member.role === 'admin' || member.role === 'organizer';
+        if (member.role === 'organizer') {
+            throw new ModifyOrganizerError();
+        }
+
+        const isCurrentlyAdmin = member.role === 'admin';
         if (isCurrentlyAdmin) {
             const activeAdmins = await this.eventMemberRepository.countActiveAdmins(eventId);
             if (activeAdmins <= 1) {

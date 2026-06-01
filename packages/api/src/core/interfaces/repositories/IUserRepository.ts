@@ -12,6 +12,7 @@ export default interface IUserRepository {
         page: number;
         limit: number;
         search?: string;
+        emailSearch?: string;
         role?: UserRole;
     }): Promise<{ users: User[]; total: number }>;
     updateActive(id: string, isActive: boolean): Promise<User>;
