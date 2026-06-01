@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodObject, ZodError, ZodIssue, ZodRawShape } from 'zod';
+import { ZodType, ZodError, ZodIssue } from 'zod';
 
 export default function validateSchema(
-    schema: ZodObject<ZodRawShape>,
+    schema: ZodType<unknown>,
 ): (req: Request, res: Response, next: NextFunction) => void {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
