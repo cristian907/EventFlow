@@ -17,6 +17,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 
 import { useAuth } from '../features/auth/context/AuthContext';
+import { useEvent } from '../features/events/context/EventContext';
 
 interface NavItem {
     id: string;
@@ -25,6 +26,14 @@ interface NavItem {
     icon: IconDefinition;
     group: 'operación' | 'administración';
     roleRequired?: 'ADMIN';
+}
+
+interface EventNavItem {
+    id: string;
+    label: string;
+    path: string;
+    icon: IconDefinition;
+    allowedRoles: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -37,27 +46,6 @@ const NAV_ITEMS: NavItem[] = [
     },
     { id: 'events', label: 'Eventos', path: '/events', icon: faCalendarAlt, group: 'operación' },
     {
-        id: 'comprobantes',
-        label: 'Comprobantes',
-        path: '/comprobantes',
-        icon: faInbox,
-        group: 'operación',
-    },
-    {
-        id: 'ventas',
-        label: 'Ventas taquilla',
-        path: '/ventas',
-        icon: faReceipt,
-        group: 'operación',
-    },
-    {
-        id: 'verificacion',
-        label: 'Verif. puerta',
-        path: '/verificacion',
-        icon: faQrcode,
-        group: 'operación',
-    },
-    {
         id: 'usuarios',
         label: 'Usuarios',
         path: '/admin/users',
@@ -68,8 +56,54 @@ const NAV_ITEMS: NavItem[] = [
     { id: 'config', label: 'Configuración', path: '/config', icon: faCog, group: 'administración' },
 ];
 
+const EVENT_NAV_ITEMS = (eventId: string): EventNavItem[] => [
+    {
+        id: 'event-dashboard',
+        label: 'Dashboard del Evento',
+        path: `/events/${eventId}/dashboard`,
+        icon: faChartLine,
+        allowedRoles: ['ADMIN', 'ORGANIZER', 'COLLABORATOR', 'SCANNER'],
+    },
+    {
+        id: 'event-staff',
+        label: 'Staff / Usuarios',
+        path: `/events/${eventId}/staff`,
+        icon: faUsers,
+        allowedRoles: ['ADMIN', 'ORGANIZER'],
+    },
+    {
+        id: 'event-tickets',
+        label: 'Tipos de Entrada',
+        path: `/events/${eventId}/tickets`,
+        icon: faInbox,
+        allowedRoles: ['ADMIN', 'ORGANIZER'],
+    },
+    {
+        id: 'event-sales',
+        label: 'Registro de Ventas',
+        path: `/events/${eventId}/sales`,
+        icon: faReceipt,
+        allowedRoles: ['ADMIN', 'ORGANIZER', 'COLLABORATOR'],
+    },
+    {
+        id: 'event-door-check',
+        label: 'Registros en Puerta',
+        path: `/events/${eventId}/door-check`,
+        icon: faQrcode,
+        allowedRoles: ['ADMIN', 'ORGANIZER', 'SCANNER'],
+    },
+    {
+        id: 'event-config',
+        label: 'Configuración',
+        path: `/events/${eventId}/config`,
+        icon: faCog,
+        allowedRoles: ['ADMIN', 'ORGANIZER'],
+    },
+];
+
 export function Layout() {
     const { user, isLoading, logoutUser } = useAuth();
+    const { currentEvent, eventRole } = useEvent();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const location = useLocation();
@@ -145,10 +179,20 @@ export function Layout() {
     const crumbs = (): string[] => {
         const path = location.pathname;
         if (path.startsWith('/dashboard')) return ['Inicio', 'Dashboard'];
-        if (path.startsWith('/events')) return ['Inicio', 'Eventos'];
-        if (path.startsWith('/comprobantes')) return ['Inicio', 'Cola de comprobantes'];
-        if (path.startsWith('/ventas')) return ['Inicio', 'Ventas en taquilla'];
-        if (path.startsWith('/verificacion')) return ['Inicio', 'Verificación en puerta'];
+        if (path.startsWith('/events')) {
+            if (currentEvent) {
+                const parts = path.split('/');
+                const lastPart = parts[parts.length - 1];
+                let subName = 'Dashboard del Evento';
+                if (lastPart === 'staff') subName = 'Staff / Usuarios';
+                if (lastPart === 'tickets') subName = 'Tipos de Entrada';
+                if (lastPart === 'sales') subName = 'Registro de Ventas';
+                if (lastPart === 'door-check') subName = 'Registros en Puerta';
+                if (lastPart === 'config') subName = 'Configuración';
+                return ['Inicio', 'Eventos', currentEvent.name, subName];
+            }
+            return ['Inicio', 'Eventos'];
+        }
         if (path.startsWith('/admin/users')) return ['Inicio', 'Administración', 'Usuarios'];
         if (path.startsWith('/config')) return ['Inicio', 'Configuración'];
         return ['Inicio'];
@@ -168,34 +212,113 @@ export function Layout() {
         <div className="app-shell">
             {/* Sidebar Desktop & Mobile */}
             <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-                <div className="logo">
-                    <div className="logo-mark">E</div>
-                    <div>
-                        <div className="logo-name">Event Flow</div>
-                        <div className="logo-sub">Gestión de Eventos</div>
+                {currentEvent ? (
+                    <div className="logo">
+                        <div
+                            className="logo-mark"
+                            style={{
+                                background: 'var(--secondary)',
+                                fontSize: 13,
+                                fontWeight: 700,
+                            }}
+                        >
+                            EV
+                        </div>
+                        <div style={{ overflow: 'hidden' }}>
+                            <div
+                                className="logo-name"
+                                style={{
+                                    fontSize: 14,
+                                    whiteSpace: 'nowrap',
+                                    textOverflow: 'ellipsis',
+                                    overflow: 'hidden',
+                                    maxWidth: 140,
+                                }}
+                                title={currentEvent.name}
+                            >
+                                {currentEvent.name}
+                            </div>
+                            <div className="logo-sub">Espacio del Evento</div>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="logo">
+                        <div className="logo-mark">E</div>
+                        <div>
+                            <div className="logo-name">Event Flow</div>
+                            <div className="logo-sub">Gestión de Eventos</div>
+                        </div>
+                    </div>
+                )}
 
                 <nav className="nav">
-                    {Object.entries(groupedNav).map(([group, items]) => (
-                        <React.Fragment key={group}>
-                            <div className="nav-group-label">{group}</div>
-                            {items.map((n) => {
-                                const isActive = location.pathname === n.path;
-                                return (
-                                    <Link
-                                        key={n.id}
-                                        to={n.path}
-                                        className={`nav-item ${isActive ? 'active' : ''}`}
-                                        onClick={() => setMobileOpen(false)}
-                                    >
-                                        <FontAwesomeIcon icon={n.icon} style={{ width: 16 }} />
-                                        {n.label}
-                                    </Link>
-                                );
-                            })}
-                        </React.Fragment>
-                    ))}
+                    {currentEvent ? (
+                        <>
+                            <Link
+                                to="/events"
+                                className="nav-item"
+                                style={{
+                                    marginBottom: 12,
+                                    color: 'var(--primary)',
+                                    fontWeight: 600,
+                                    borderBottom: '1px solid var(--border)',
+                                    borderRadius: 0,
+                                    paddingBottom: 10,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                }}
+                            >
+                                <FontAwesomeIcon
+                                    icon={faChevronRight}
+                                    style={{ transform: 'rotate(180deg)' }}
+                                />
+                                Volver a Eventos
+                            </Link>
+
+                            <div className="nav-group-label">Módulos del Evento</div>
+                            {EVENT_NAV_ITEMS(currentEvent.id)
+                                .filter((item) => {
+                                    if (!eventRole) return false;
+                                    const role = eventRole.toUpperCase();
+                                    return item.allowedRoles.includes(role);
+                                })
+                                .map((n) => {
+                                    const isActive = location.pathname === n.path;
+                                    return (
+                                        <Link
+                                            key={n.id}
+                                            to={n.path}
+                                            className={`nav-item ${isActive ? 'active' : ''}`}
+                                            onClick={() => setMobileOpen(false)}
+                                        >
+                                            <FontAwesomeIcon icon={n.icon} style={{ width: 16 }} />
+                                            {n.label}
+                                        </Link>
+                                    );
+                                })}
+                        </>
+                    ) : (
+                        Object.entries(groupedNav).map(([group, items]) => (
+                            <React.Fragment key={group}>
+                                <div className="nav-group-label">{group}</div>
+                                {items.map((n) => {
+                                    const isActive = location.pathname === n.path;
+                                    return (
+                                        <Link
+                                            key={n.id}
+                                            to={n.path}
+                                            className={`nav-item ${isActive ? 'active' : ''}`}
+                                            onClick={() => setMobileOpen(false)}
+                                        >
+                                            <FontAwesomeIcon icon={n.icon} style={{ width: 16 }} />
+                                            {n.label}
+                                        </Link>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))
+                    )}
                 </nav>
 
                 {/* Exchange Rate indicator */}

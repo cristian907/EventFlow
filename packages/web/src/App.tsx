@@ -4,6 +4,11 @@ import { Layout } from './components/Layout';
 import { AuthProvider } from './features/auth/context/AuthContext';
 import { LoginPage } from './features/auth/pages/login';
 import { NotFoundPage } from './features/errors/pages/not-found';
+import { EventProvider } from './features/events/context/EventContext';
+import { EventDashboardPage } from './features/events/pages/EventDashboardPage';
+import { EventDetailPage } from './features/events/pages/EventDetailPage';
+import { EventListPage } from './features/events/pages/EventListPage';
+import { EventPlaceholderPage } from './features/events/pages/EventPlaceholderPage';
 import { AdminUsersPage } from './features/users/pages/AdminUsersPage';
 
 const router = createBrowserRouter([
@@ -32,55 +37,37 @@ const router = createBrowserRouter([
             { path: 'admin/users', element: <AdminUsersPage /> },
             {
                 path: 'events',
-                element: (
-                    <div className="card elevated" style={{ padding: 24 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>Eventos</h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            El módulo de eventos se encuentra actualmente en desarrollo y estará
-                            disponible próximamente en la Issue #8.
-                        </p>
-                    </div>
-                ),
+                element: <EventListPage />,
             },
             {
-                path: 'comprobantes',
-                element: (
-                    <div className="card elevated" style={{ padding: 24 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>
-                            Comprobantes
-                        </h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Cola global de validación de comprobantes de pago (Próximamente).
-                        </p>
-                    </div>
-                ),
-            },
-            {
-                path: 'ventas',
-                element: (
-                    <div className="card elevated" style={{ padding: 24 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>
-                            Ventas taquilla
-                        </h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Emisión y venta directa de entradas físicas en taquilla (Próximamente).
-                        </p>
-                    </div>
-                ),
-            },
-            {
-                path: 'verificacion',
-                element: (
-                    <div className="card elevated" style={{ padding: 24 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>
-                            Verificación en puerta
-                        </h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Lector y validador de entradas digitales mediante código QR
-                            (Próximamente).
-                        </p>
-                    </div>
-                ),
+                path: 'events/:eventId',
+                element: <EventDetailPage />,
+                children: [
+                    {
+                        path: 'dashboard',
+                        element: <EventDashboardPage />,
+                    },
+                    {
+                        path: 'staff',
+                        element: <EventPlaceholderPage title="Staff y Usuarios" />,
+                    },
+                    {
+                        path: 'tickets',
+                        element: <EventPlaceholderPage title="Tipos de Entrada" />,
+                    },
+                    {
+                        path: 'sales',
+                        element: <EventPlaceholderPage title="Registro de Ventas" />,
+                    },
+                    {
+                        path: 'door-check',
+                        element: <EventPlaceholderPage title="Registros en Puerta" />,
+                    },
+                    {
+                        path: 'config',
+                        element: <EventPlaceholderPage title="Configuración del Evento" />,
+                    },
+                ],
             },
             {
                 path: 'config',
@@ -104,7 +91,9 @@ const router = createBrowserRouter([
 function App(): JSX.Element {
     return (
         <AuthProvider>
-            <RouterProvider router={router} />
+            <EventProvider>
+                <RouterProvider router={router} />
+            </EventProvider>
         </AuthProvider>
     );
 }

@@ -7,6 +7,7 @@ const { verify } = jwt;
 import { UserRole } from '../../core/entities/User';
 import { ForbiddenError, UnauthorizedError } from '../../core/errors/BusinessErrors';
 import { EnvironmentVariableError } from '../../core/errors/InternalServerErrors';
+import prisma from '../database/PrismaClient';
 
 export interface RequestContext {
     userId: string;
@@ -39,6 +40,48 @@ export function authorizeAdmin(_req: Request, _res: Response, next: NextFunction
     const store = requestContext.getStore();
     if (!store || store.role !== UserRole.Admin) return next(new ForbiddenError());
     next();
+}
+
+export function authorizeEventRole(...allowedRoles: string[]) {
+    return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+        const store = requestContext.getStore();
+        if (!store) return next(new UnauthorizedError());
+
+        // Global ADMIN bypasses all event checks
+        if (store.role === UserRole.Admin) {
+            return next();
+        }
+
+        const eventId = req.params.eventId;
+        if (!eventId || typeof eventId !== 'string') return next(new ForbiddenError());
+
+        try {
+            const member = await prisma.eventMember.findFirst({
+                where: {
+                    eventId,
+                    userId: store.userId,
+                },
+            });
+
+            if (!member) {
+                return next(new ForbiddenError());
+            }
+
+            const normalizedRoles = allowedRoles.map((r) => r.toUpperCase());
+            const isOrganizerOrAdmin = member.role === 'ORGANIZER' || member.role === 'ADMIN';
+            const hasAllowedRole =
+                normalizedRoles.includes(member.role) ||
+                (normalizedRoles.includes('ADMIN') && isOrganizerOrAdmin);
+
+            if (!hasAllowedRole) {
+                return next(new ForbiddenError());
+            }
+
+            next();
+        } catch (error) {
+            next(error);
+        }
+    };
 }
 
 /**
