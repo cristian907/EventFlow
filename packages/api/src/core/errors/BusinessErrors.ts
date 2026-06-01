@@ -116,3 +116,50 @@ export class InvalidSaleWindowError extends BusinessError {
         );
     }
 }
+
+export class DuplicateMemberError extends BusinessError {
+    public readonly name = 'DuplicateMemberError';
+    public readonly statusCode = 409;
+
+    constructor() {
+        super('El usuario ya es miembro de este evento.');
+    }
+}
+
+export class EventMemberNotFoundError extends BusinessError {
+    public readonly name = 'EventMemberNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún miembro del staff con el ID ${id} para este evento.`);
+    }
+}
+
+export class RemoveLastAdminError extends BusinessError {
+    public readonly name = 'RemoveLastAdminError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('No puedes eliminar o degradar al último administrador activo del evento.');
+    }
+}
+
+export class PasswordRequiredError extends BusinessError {
+    public readonly name = 'PasswordRequiredError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('La contraseña es obligatoria para crear una cuenta nueva.');
+    }
+}
+
+export class ModifyOrganizerError extends BusinessError {
+    public readonly name = 'ModifyOrganizerError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super(
+            'No está permitido modificar o desactivar al creador/organizador principal del evento.',
+        );
+    }
+}

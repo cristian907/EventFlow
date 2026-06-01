@@ -33,7 +33,7 @@ export default class PrismaUserRepository implements IUserRepository {
         );
     }
 
-    async create(user: UserToCreateType): Promise<User> {
+    async create(user: UserToCreateType & { createdBy?: string }): Promise<User> {
         try {
             const createdUser = await this.prismaClient.user.create({
                 data: {
@@ -41,6 +41,7 @@ export default class PrismaUserRepository implements IUserRepository {
                     passwordHash: user.password,
                     fullName: user.fullName,
                     phoneNumber: user.phoneNumber,
+                    createdBy: user.createdBy ?? null,
                 },
             });
             return this.mapToUserEntity(createdUser);
@@ -109,9 +110,10 @@ export default class PrismaUserRepository implements IUserRepository {
         page: number;
         limit: number;
         search?: string;
+        emailSearch?: string;
         role?: UserRole;
     }): Promise<{ users: User[]; total: number }> {
-        const { page, limit, search, role } = options;
+        const { page, limit, search, emailSearch, role } = options;
         const skip = (page - 1) * limit;
         const take = limit;
 
@@ -121,7 +123,9 @@ export default class PrismaUserRepository implements IUserRepository {
             where.role = toPrismaRole(role);
         }
 
-        if (search) {
+        if (emailSearch) {
+            where.email = { startsWith: emailSearch, mode: 'insensitive' };
+        } else if (search) {
             where.OR = [
                 { fullName: { contains: search, mode: 'insensitive' } },
                 { email: { contains: search, mode: 'insensitive' } },
