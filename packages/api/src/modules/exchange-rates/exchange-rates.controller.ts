@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
+import { UnauthorizedError } from '../../core/errors/BusinessErrors';
 import { requestContext } from '../../infrastructure/http/authMiddleware';
 
 import ExchangeRatesService from './exchange-rates.service';
@@ -12,7 +13,7 @@ export default class ExchangeRatesController {
             const store = requestContext.getStore();
             const setBy = store?.userId;
             if (!setBy) {
-                res.status(401).json({ message: 'No autenticado' });
+                next(new UnauthorizedError());
                 return;
             }
 

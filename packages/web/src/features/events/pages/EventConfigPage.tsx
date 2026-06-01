@@ -113,7 +113,12 @@ function erReducer(state: ERState, action: ERAction): ERState {
         case 'HISTORY_SUCCESS':
             return { ...state, history: action.history, isHistoryLoading: false };
         case 'ERROR':
-            return { ...state, isLoading: false, error: action.message };
+            return {
+                ...state,
+                isLoading: false,
+                isHistoryLoading: false,
+                error: action.message,
+            };
     }
 }
 
@@ -936,9 +941,10 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
         try {
             const history = await exchangeRateService.list(eventId);
             dispatch({ type: 'HISTORY_SUCCESS', history });
-        } catch {
-            dispatch({ type: 'HISTORY_SUCCESS', history: [] });
+        } catch (err) {
+            dispatch({ type: 'ERROR', message: getApiErrorMessage(err) });
         }
+    }, [eventId]);
     }, [eventId]);
 
     useEffect(() => {
@@ -1037,7 +1043,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                     </>
                 ) : (
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
-                        Sin tasa registrada para este evento.
+                        {state.error ?? 'Sin tasa registrada para este evento.'}
                     </p>
                 )}
             </div>
