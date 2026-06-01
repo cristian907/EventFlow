@@ -1,4 +1,4 @@
-import { EventType, EventToCreateType } from '@eventflow/shared';
+import { EventType, EventToCreateType, EventToUpdateType } from '@eventflow/shared';
 
 import { api } from '../../../services/axios';
 
@@ -34,5 +34,10 @@ export const eventService = {
     async getEventDetail(eventId: string): Promise<EventDetailResponse> {
         const response = await api.get<EventDetailResponse>(`/events/${eventId}`);
         return response.data;
+    },
+
+    async updateEvent(eventId: string, data: EventToUpdateType): Promise<EventType> {
+        const response = await api.put<{ event: EventType }>(`/events/${eventId}`, data);
+        return response.data.event;
     },
 };

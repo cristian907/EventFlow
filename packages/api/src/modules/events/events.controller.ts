@@ -81,4 +81,14 @@ export default class EventsController {
             next(error);
         }
     };
+
+    update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const eventId = String(req.params.eventId);
+            const updated = await this.eventsService.updateEvent(eventId, req.body);
+            res.json({ event: updated });
+        } catch (error) {
+            next(error);
+        }
+    };
 }

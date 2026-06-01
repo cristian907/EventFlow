@@ -24,7 +24,8 @@ model User {
   eventMembers EventMember[]
   usersCreated User[] @relation("UserCreatedBy")
   createdByUser User? @relation("UserCreatedBy", fields: [createdBy], references: [id])
-  createdBy String? 
+  createdBy String?
+  exchangeRatesSet ExchangeRate[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -37,7 +38,7 @@ enum UserRole {
 model Event {
   id String @id @default(uuid())
   organizer User @relation(fields: [organizerId], references: [id])
-  organizerId String 
+  organizerId String
   imageUrl String
   name String
   description String
@@ -51,6 +52,8 @@ model Event {
   status EventStatus @default(DRAFT)
   eventMembers EventMember[]
   ticketTypes TicketType[]
+  paymentMethods PaymentMethod[]
+  exchangeRates ExchangeRate[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -88,6 +91,7 @@ enum EventMemberStatus {
 enum Currency {
   USD
   VES
+  EUR
 }
 
 model TicketType {
@@ -105,4 +109,27 @@ model TicketType {
   saleEndsAt    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  name      String
+  details   String
+  currency  Currency
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExchangeRate {
+  id          String   @id @default(uuid())
+  event       Event    @relation(fields: [eventId], references: [id])
+  eventId     String
+  rate        Decimal
+  setByUser   User     @relation(fields: [setBy], references: [id])
+  setBy       String
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 }

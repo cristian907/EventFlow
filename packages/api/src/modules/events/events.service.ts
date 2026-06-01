@@ -1,13 +1,26 @@
-import { EventType, EventToCreateType, EventStatus as SharedEventStatus } from '@eventflow/shared';
+import {
+    EventType,
+    EventToCreateType,
+    EventToUpdateType,
+    EventStatus as SharedEventStatus,
+} from '@eventflow/shared';
 
 import { EventStatus } from '../../core/entities/Event';
-import { EventNotFoundError, ForbiddenError } from '../../core/errors/BusinessErrors';
+import {
+    EventNotFoundError,
+    ForbiddenError,
+    MaxCapacityBelowAssignedError,
+} from '../../core/errors/BusinessErrors';
 import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
+import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
 
 import EventsMapper from './events.mapper';
 
 export default class EventsService {
-    constructor(private eventRepository: IEventRepository) {}
+    constructor(
+        private eventRepository: IEventRepository,
+        private ticketTypeRepository: ITicketTypeRepository,
+    ) {}
 
     public async createEvent(
         organizerId: string,
@@ -100,5 +113,33 @@ export default class EventsService {
             event: EventsMapper.toEventType(event),
             eventRole: memberRole,
         };
+    }
+
+    public async updateEvent(eventId: string, data: EventToUpdateType): Promise<EventType> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) throw new EventNotFoundError(eventId);
+
+        if (data.maxCapacity !== undefined) {
+            const totalAssigned =
+                await this.ticketTypeRepository.sumTotalQuantityByEventId(eventId);
+            if (data.maxCapacity < totalAssigned) {
+                throw new MaxCapacityBelowAssignedError(data.maxCapacity, totalAssigned);
+            }
+        }
+
+        const payload: Parameters<IEventRepository['update']>[1] = {};
+        if (data.name !== undefined) payload.name = data.name;
+        if (data.description !== undefined) payload.description = data.description;
+        if (data.location !== undefined) payload.location = data.location;
+        if (data.address !== undefined) payload.address = data.address;
+        if (data.maxCapacity !== undefined) payload.maxCapacity = data.maxCapacity;
+        if (data.imageUrl !== undefined) payload.imageUrl = data.imageUrl;
+        if (data.startDate !== undefined) payload.startDate = new Date(data.startDate);
+        if (data.endDate !== undefined) payload.endDate = new Date(data.endDate);
+        if (data.startTime !== undefined) payload.startTime = new Date(data.startTime);
+        if (data.endTime !== undefined) payload.endTime = new Date(data.endTime);
+
+        const updated = await this.eventRepository.update(eventId, payload);
+        return EventsMapper.toEventType(updated);
     }
 }
