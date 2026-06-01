@@ -41,7 +41,8 @@ model Event {
   imageUrl String
   name String
   description String
-  date DateTime
+  startDate DateTime
+  endDate DateTime
   startTime DateTime
   endTime DateTime
   location String
@@ -49,6 +50,7 @@ model Event {
   maxCapacity Int
   status EventStatus @default(DRAFT)
   eventMembers EventMember[]
+  ticketTypes TicketType[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -74,4 +76,26 @@ enum EventMemberRole {
   ADMIN
   COLLABORATOR
   SCANNER
+}
+
+enum Currency {
+  USD
+  VES
+}
+
+model TicketType {
+  id            String    @id @default(uuid())
+  event         Event     @relation(fields: [eventId], references: [id])
+  eventId       String
+  name          String
+  description   String    @default("")
+  price         Float
+  currency      Currency  @default(USD)
+  totalQuantity Int
+  soldQuantity  Int       @default(0)
+  isActive      Boolean   @default(true)
+  saleStartsAt  DateTime?
+  saleEndsAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

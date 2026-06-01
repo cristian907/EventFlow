@@ -1,0 +1,34 @@
+import TicketType from '../../entities/TicketType';
+
+export default interface ITicketTypeRepository {
+    create(data: {
+        eventId: string;
+        name: string;
+        description: string;
+        price: number;
+        currency: string;
+        totalQuantity: number;
+        saleStartsAt?: Date | null;
+        saleEndsAt?: Date | null;
+    }): Promise<TicketType>;
+
+    findById(id: string): Promise<TicketType | null>;
+
+    findByEventId(eventId: string, includeInactive?: boolean): Promise<TicketType[]>;
+
+    update(
+        id: string,
+        data: {
+            name?: string;
+            description?: string;
+            price?: number;
+            currency?: string;
+            totalQuantity?: number;
+            isActive?: boolean;
+            saleStartsAt?: Date | null;
+            saleEndsAt?: Date | null;
+        },
+    ): Promise<TicketType>;
+
+    sumTotalQuantityByEventId(eventId: string, excludeId?: string): Promise<number>;
+}

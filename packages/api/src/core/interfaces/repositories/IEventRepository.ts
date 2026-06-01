@@ -5,7 +5,8 @@ export default interface IEventRepository {
         organizerId: string;
         name: string;
         description: string;
-        date: Date;
+        startDate: Date;
+        endDate: Date;
         startTime: Date;
         endTime: Date;
         location: string;

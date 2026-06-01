@@ -27,10 +27,14 @@ export const EventToCreateSchema = z
     .object({
         name: z.string().min(1, 'El nombre es obligatorio'),
         description: z.string().min(1, 'La descripción es obligatoria'),
-        date: z
+        startDate: z
             .string()
-            .min(1, 'La fecha es obligatoria')
-            .refine(isValidDateValue, { message: 'La fecha del evento no es válida' }),
+            .min(1, 'La fecha de inicio es obligatoria')
+            .refine(isValidDateValue, { message: 'La fecha de inicio no es válida' }),
+        endDate: z
+            .string()
+            .min(1, 'La fecha de fin es obligatoria')
+            .refine(isValidDateValue, { message: 'La fecha de fin no es válida' }),
         startTime: z
             .string()
             .min(1, 'La hora de inicio es obligatoria')
@@ -58,13 +62,34 @@ export const EventToCreateSchema = z
     })
     .refine(
         (data) => {
+            const start = new Date(data.startDate);
+            const end = new Date(data.endDate);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
+
+            // Compare only year, month, day to ignore time parts
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+            return end >= start;
+        },
+        {
+            message: 'La fecha de fin debe ser igual o posterior a la fecha de inicio',
+            path: ['endDate'],
+        },
+    )
+    .refine(
+        (data) => {
             const start = toComparableTime(data.startTime);
             const end = toComparableTime(data.endTime);
             if (!start || !end) return true; // already caught above
-            return end > start;
+
+            if (data.startDate === data.endDate) {
+                return end > start;
+            }
+            return true;
         },
         {
-            message: 'La hora de finalización debe ser posterior a la hora de inicio',
+            message:
+                'La hora de finalización debe ser posterior a la hora de inicio en el mismo día',
             path: ['endTime'],
         },
     );

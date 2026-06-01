@@ -9,6 +9,7 @@ import { EventDashboardPage } from './features/events/pages/EventDashboardPage';
 import { EventDetailPage } from './features/events/pages/EventDetailPage';
 import { EventListPage } from './features/events/pages/EventListPage';
 import { EventPlaceholderPage } from './features/events/pages/EventPlaceholderPage';
+import { TicketTypesPage } from './features/events/pages/TicketTypesPage';
 import { AdminUsersPage } from './features/users/pages/AdminUsersPage';
 
 const router = createBrowserRouter([
@@ -53,7 +54,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'tickets',
-                        element: <EventPlaceholderPage title="Tipos de Entrada" />,
+                        element: <TicketTypesPage />,
                     },
                     {
                         path: 'sales',
