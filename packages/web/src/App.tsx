@@ -5,6 +5,7 @@ import { AuthProvider } from './features/auth/context/AuthContext';
 import { LoginPage } from './features/auth/pages/login';
 import { NotFoundPage } from './features/errors/pages/not-found';
 import { EventProvider } from './features/events/context/EventContext';
+import { EventConfigPage } from './features/events/pages/EventConfigPage';
 import { EventDashboardPage } from './features/events/pages/EventDashboardPage';
 import { EventDetailPage } from './features/events/pages/EventDetailPage';
 import { EventListPage } from './features/events/pages/EventListPage';
@@ -66,7 +67,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'config',
-                        element: <EventPlaceholderPage title="Configuración del Evento" />,
+                        element: <EventConfigPage />,
                     },
                 ],
             },
