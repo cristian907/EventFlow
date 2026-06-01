@@ -1,4 +1,5 @@
 import TicketType from '../../entities/TicketType';
+import { ITransactionContext } from '../ITransactionContext';
 
 export default interface ITicketTypeRepository {
     create(data: {
@@ -31,4 +32,10 @@ export default interface ITicketTypeRepository {
     ): Promise<TicketType>;
 
     sumTotalQuantityByEventId(eventId: string, excludeId?: string): Promise<number>;
+
+    decrementSoldQuantityAtomic(
+        id: string,
+        qty: number,
+        tx?: ITransactionContext,
+    ): Promise<boolean>;
 }

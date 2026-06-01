@@ -1,10 +1,13 @@
 import TicketType from '../../core/entities/TicketType';
+import { ITransactionContext } from '../../core/interfaces/ITransactionContext';
 import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
 import {
     PrismaClient,
     TicketType as PrismaTicketType,
     Currency as PrismaCurrency,
 } from '../../generated/prisma/client';
+
+import { getClient } from './prismaTransactionHelper';
 
 export default class PrismaTicketTypeRepository implements ITicketTypeRepository {
     constructor(private prismaClient: PrismaClient) {}
@@ -114,5 +117,21 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
             _sum: { totalQuantity: true },
         });
         return result._sum.totalQuantity ?? 0;
+    }
+
+    async decrementSoldQuantityAtomic(
+        id: string,
+        qty: number,
+        tx?: ITransactionContext,
+    ): Promise<boolean> {
+        const client = getClient(this.prismaClient, tx);
+        const result = await client.$executeRaw`
+            UPDATE "TicketType"
+            SET "soldQuantity" = "soldQuantity" + ${qty}
+            WHERE id::text = ${id}
+              AND "isActive" = true
+              AND "soldQuantity" + ${qty} <= "totalQuantity"
+        `;
+        return result > 0;
     }
 }

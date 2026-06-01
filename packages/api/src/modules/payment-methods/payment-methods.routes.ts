@@ -11,16 +11,22 @@ export default function createPaymentMethodsRoutes(
 ): Router {
     const router = Router({ mergeParams: true });
 
-    router.use(authMiddleware, authorizeEventRole('admin'));
+    router.use(authMiddleware);
 
-    router.get('/', paymentMethodsController.list);
-    router.post('/', validateSchema(PaymentMethodToCreateSchema), paymentMethodsController.create);
+    router.get('/', authorizeEventRole('admin', 'collaborator'), paymentMethodsController.list);
+    router.post(
+        '/',
+        authorizeEventRole('admin'),
+        validateSchema(PaymentMethodToCreateSchema),
+        paymentMethodsController.create,
+    );
     router.put(
         '/:methodId',
+        authorizeEventRole('admin'),
         validateSchema(PaymentMethodToUpdateSchema),
         paymentMethodsController.update,
     );
-    router.delete('/:methodId', paymentMethodsController.disable);
+    router.delete('/:methodId', authorizeEventRole('admin'), paymentMethodsController.disable);
 
     return router;
 }

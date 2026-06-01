@@ -4,3 +4,4 @@ export * from './ticketType.types';
 export * from './paymentMethod.types';
 export * from './exchangeRate.types';
 export * from './staff.types';
+export * from './sale.types';

@@ -11,27 +11,36 @@ export default function createTicketTypesRoutes(
 ): Router {
     const router = Router({ mergeParams: true });
 
-    // All routes require authentication + event admin role
-    router.use(authMiddleware, authorizeEventRole('admin'));
+    router.use(authMiddleware);
 
     // GET /events/:eventId/ticket-types
-    router.get('/', ticketTypesController.list);
+    router.get('/', authorizeEventRole('admin', 'collaborator'), ticketTypesController.list);
 
     // POST /events/:eventId/ticket-types
-    router.post('/', validateSchema(TicketTypeToCreateSchema), ticketTypesController.create);
+    router.post(
+        '/',
+        authorizeEventRole('admin'),
+        validateSchema(TicketTypeToCreateSchema),
+        ticketTypesController.create,
+    );
 
     // GET /events/:eventId/ticket-types/:ticketTypeId
-    router.get('/:ticketTypeId', ticketTypesController.getById);
+    router.get(
+        '/:ticketTypeId',
+        authorizeEventRole('admin', 'collaborator'),
+        ticketTypesController.getById,
+    );
 
     // PUT /events/:eventId/ticket-types/:ticketTypeId
     router.put(
         '/:ticketTypeId',
+        authorizeEventRole('admin'),
         validateSchema(TicketTypeToUpdateSchema),
         ticketTypesController.update,
     );
 
     // DELETE /events/:eventId/ticket-types/:ticketTypeId (soft delete)
-    router.delete('/:ticketTypeId', ticketTypesController.deactivate);
+    router.delete('/:ticketTypeId', authorizeEventRole('admin'), ticketTypesController.deactivate);
 
     return router;
 }

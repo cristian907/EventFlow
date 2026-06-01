@@ -16,3 +16,4 @@ export const validateEvent = (event: Event): boolean => {
 
 export * from './schemas/index';
 export * from './types/index';
+export * from './utils/currency';

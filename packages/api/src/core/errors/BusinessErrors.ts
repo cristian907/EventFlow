@@ -192,3 +192,52 @@ export class MaxCapacityBelowAssignedError extends BusinessError {
         );
     }
 }
+
+export class InsufficientTicketsError extends BusinessError {
+    public readonly name = 'InsufficientTicketsError';
+    public readonly statusCode = 409;
+
+    constructor() {
+        super('No hay suficientes entradas disponibles para completar esta venta.');
+    }
+}
+
+export class NoActiveExchangeRateError extends BusinessError {
+    public readonly name = 'NoActiveExchangeRateError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super(
+            'El evento no tiene una tasa de cambio vigente. Configure una tasa antes de registrar ventas.',
+        );
+    }
+}
+
+export class InsufficientPaymentError extends BusinessError {
+    public readonly name = 'InsufficientPaymentError';
+    public readonly statusCode = 400;
+
+    constructor(totalAmount: number, paidAmount: number) {
+        super(
+            `El monto pagado (${paidAmount.toFixed(2)} USD) no cubre el total de la orden (${totalAmount.toFixed(2)} USD).`,
+        );
+    }
+}
+
+export class OrderNotFoundError extends BusinessError {
+    public readonly name = 'OrderNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ninguna orden con el ID ${id}.`);
+    }
+}
+
+export class TicketTypeNotSellableError extends BusinessError {
+    public readonly name = 'TicketTypeNotSellableError';
+    public readonly statusCode = 400;
+
+    constructor(reason: string) {
+        super(`El tipo de entrada no está disponible para venta: ${reason}`);
+    }
+}
