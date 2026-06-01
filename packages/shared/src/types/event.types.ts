@@ -1,4 +1,4 @@
-import { EventToCreate } from '../schemas/event.schemas';
+import { EventToCreate, EventToUpdate } from '../schemas/event.schemas';
 
 export type EventStatus = 'DRAFT' | 'ACTIVE' | 'CANCELLED';
 
@@ -23,3 +23,4 @@ export interface EventType {
 }
 
 export type EventToCreateType = EventToCreate;
+export type EventToUpdateType = EventToUpdate;

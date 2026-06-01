@@ -116,3 +116,32 @@ export class InvalidSaleWindowError extends BusinessError {
         );
     }
 }
+
+export class PaymentMethodNotFoundError extends BusinessError {
+    public readonly name = 'PaymentMethodNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún método de pago con el ID ${id}.`);
+    }
+}
+
+export class ExchangeRateNotFoundError extends BusinessError {
+    public readonly name = 'ExchangeRateNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ninguna tasa de cambio con el ID ${id}.`);
+    }
+}
+
+export class MaxCapacityBelowAssignedError extends BusinessError {
+    public readonly name = 'MaxCapacityBelowAssignedError';
+    public readonly statusCode = 400;
+
+    constructor(requested: number, assigned: number) {
+        super(
+            `La capacidad máxima (${requested}) no puede ser menor a la suma de entradas ya configuradas (${assigned}).`,
+        );
+    }
+}

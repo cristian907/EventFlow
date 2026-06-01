@@ -22,7 +22,6 @@ export default function authMiddleware(req: Request, _res: Response, next: NextF
 
     const token: string | undefined = req.cookies['access_token'];
     if (!token) return next(new UnauthorizedError());
-
     let payload: JwtPayload;
     try {
         payload = verify(token, jwtSecret) as JwtPayload;

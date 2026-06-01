@@ -95,3 +95,77 @@ export const EventToCreateSchema = z
     );
 
 export type EventToCreate = z.infer<typeof EventToCreateSchema>;
+
+export const EventToUpdateSchema = z
+    .object({
+        name: z.string().min(1, 'El nombre es obligatorio').optional(),
+        description: z.string().min(1, 'La descripción es obligatoria').optional(),
+        startDate: z
+            .string()
+            .refine(isValidDateValue, { message: 'La fecha de inicio no es válida' })
+            .optional(),
+        endDate: z
+            .string()
+            .refine(isValidDateValue, { message: 'La fecha de fin no es válida' })
+            .optional(),
+        startTime: z
+            .string()
+            .refine(isValidTimeValue, { message: 'La hora de inicio no es válida' })
+            .optional(),
+        endTime: z
+            .string()
+            .refine(isValidTimeValue, { message: 'La hora de finalización no es válida' })
+            .optional(),
+        location: z.string().min(1, 'La ubicación es obligatoria').optional(),
+        address: z.string().min(1, 'La dirección es obligatoria').optional(),
+        maxCapacity: z
+            .preprocess(
+                (val) => {
+                    if (typeof val === 'string') {
+                        const parsed = parseInt(val, 10);
+                        return isNaN(parsed) ? undefined : parsed;
+                    }
+                    return val;
+                },
+                z
+                    .number({ message: 'La capacidad debe ser un número' })
+                    .int()
+                    .positive('La capacidad máxima debe ser mayor a 0'),
+            )
+            .optional(),
+        imageUrl: z.string().optional().or(z.literal('')),
+    })
+    .refine(
+        (data) => {
+            if (!data.startDate || !data.endDate) return true;
+            const start = new Date(data.startDate);
+            const end = new Date(data.endDate);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+            return end >= start;
+        },
+        {
+            message: 'La fecha de fin debe ser igual o posterior a la fecha de inicio',
+            path: ['endDate'],
+        },
+    )
+    .refine(
+        (data) => {
+            if (!data.startTime || !data.endTime) return true;
+            const start = toComparableTime(data.startTime);
+            const end = toComparableTime(data.endTime);
+            if (!start || !end) return true;
+            if (data.startDate && data.endDate && data.startDate === data.endDate) {
+                return end > start;
+            }
+            return true;
+        },
+        {
+            message:
+                'La hora de finalización debe ser posterior a la hora de inicio en el mismo día',
+            path: ['endTime'],
+        },
+    );
+
+export type EventToUpdate = z.infer<typeof EventToUpdateSchema>;

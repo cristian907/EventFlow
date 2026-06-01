@@ -142,6 +142,28 @@ export default class PrismaEventRepository implements IEventRepository {
         };
     }
 
+    async update(
+        id: string,
+        data: {
+            name?: string;
+            description?: string;
+            startDate?: Date;
+            endDate?: Date;
+            startTime?: Date;
+            endTime?: Date;
+            location?: string;
+            address?: string;
+            maxCapacity?: number;
+            imageUrl?: string;
+        },
+    ): Promise<Event> {
+        const updated = await this.prismaClient.event.update({
+            where: { id },
+            data,
+        });
+        return this.mapToEventEntity(updated);
+    }
+
     async getMemberRole(eventId: string, userId: string): Promise<string | null> {
         const member = await this.prismaClient.eventMember.findFirst({
             where: {
