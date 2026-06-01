@@ -352,7 +352,7 @@ export function Layout() {
                                     </span>
                                 </div>
                                 <div className="rate-time">
-                                    {new Date(currentRate.effectiveAt).toLocaleDateString('es-VE', {
+                                    {new Date(currentRate.effectiveAt).toLocaleString('es-VE', {
                                         day: '2-digit',
                                         month: 'short',
                                         hour: '2-digit',

@@ -4,7 +4,7 @@ import IOrderRepository, {
     OrderCreateData,
     OrderFilters,
 } from '../../core/interfaces/repositories/IOrderRepository';
-import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient, Prisma } from '../../generated/prisma/client';
 
 import { getClient } from './prismaTransactionHelper';
 
@@ -168,7 +168,7 @@ export default class PrismaOrderRepository implements IOrderRepository {
         const limit = filters.limit ?? 20;
         const skip = (page - 1) * limit;
 
-        const where: Record<string, unknown> = { eventId };
+        const where: Prisma.OrderWhereInput = { eventId };
 
         if (filters.idNumber) {
             where.customer = { idNumber: { contains: filters.idNumber, mode: 'insensitive' } };
@@ -177,7 +177,7 @@ export default class PrismaOrderRepository implements IOrderRepository {
             where.items = { some: { ticketTypeId: filters.ticketTypeId } };
         }
         if (filters.startDate || filters.endDate) {
-            const dateFilter: Record<string, Date> = {};
+            const dateFilter: Prisma.DateTimeFilter = {};
             if (filters.startDate) dateFilter.gte = new Date(filters.startDate);
             if (filters.endDate) dateFilter.lte = new Date(filters.endDate);
             where.createdAt = dateFilter;

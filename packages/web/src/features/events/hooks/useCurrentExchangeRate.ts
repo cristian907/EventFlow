@@ -24,6 +24,8 @@ export function useCurrentExchangeRate(
         void (async () => {
             if (!eventId) {
                 setRate(null);
+                setIsLoading(false);
+                setError(false);
                 return;
             }
 
@@ -34,7 +36,11 @@ export function useCurrentExchangeRate(
                 const { current } = await exchangeRateService.getCurrent(eventId);
                 if (!cancelled) setRate(current);
             } catch {
-                if (!cancelled) setError(true);
+                if (!cancelled) {
+                    setRate(null);
+                    setError(true);
+                }
+            }
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
