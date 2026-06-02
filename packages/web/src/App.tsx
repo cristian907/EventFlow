@@ -5,11 +5,11 @@ import { AuthProvider } from './features/auth/context/AuthContext';
 import { LoginPage } from './features/auth/pages/login';
 import { NotFoundPage } from './features/errors/pages/not-found';
 import { EventProvider } from './features/events/context/EventContext';
+import DoorCheckPage from './features/events/pages/DoorCheckPage';
 import { EventConfigPage } from './features/events/pages/EventConfigPage';
 import { EventDashboardPage } from './features/events/pages/EventDashboardPage';
 import { EventDetailPage } from './features/events/pages/EventDetailPage';
 import { EventListPage } from './features/events/pages/EventListPage';
-import { EventPlaceholderPage } from './features/events/pages/EventPlaceholderPage';
 import { EventStaffPage } from './features/events/pages/EventStaffPage';
 import SalesPage from './features/events/pages/SalesPage';
 import { TicketTypesPage } from './features/events/pages/TicketTypesPage';
@@ -65,7 +65,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'door-check',
-                        element: <EventPlaceholderPage title="Registros en Puerta" />,
+                        element: <DoorCheckPage />,
                     },
                     {
                         path: 'config',
