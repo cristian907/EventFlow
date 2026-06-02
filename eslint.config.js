@@ -88,7 +88,9 @@ export default [
         languageOptions: {
             parser: tsparser,
             parserOptions: {
-                project: 'packages/web/tsconfig.json',
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
                 tsconfigRootDir: __dirname,
                 ecmaFeatures: { jsx: true },
             },

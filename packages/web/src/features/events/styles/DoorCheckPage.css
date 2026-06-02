@@ -1,0 +1,369 @@
+/* ─── Door Check / Access Module ─── */
+
+.door-check {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+}
+
+/* ─── Header ─── */
+.door-check__header {
+    background: var(--text-primary);
+    color: #fff;
+    border-radius: var(--r-lg);
+    padding: 14px 20px;
+}
+
+.door-check__header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.door-check__event-label {
+    font-size: 11px;
+    opacity: 0.65;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.door-check__event-name {
+    font-weight: 600;
+    font-size: 17px;
+}
+
+.door-check__stats {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.door-check__validated-label {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.door-check__validated-count {
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+}
+
+.door-check__validated-total {
+    opacity: 0.6;
+    font-size: 15px;
+}
+
+/* ─── Mode Toggle ─── */
+.door-check__modes {
+    display: flex;
+    gap: 8px;
+}
+
+.door-check__mode-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.door-check__mode-btn--active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+/* ─── Scanner ─── */
+.door-check__scanner {
+    position: relative;
+    flex: 1;
+    background: #0e0c0b;
+    border-radius: var(--r-lg);
+    min-height: 420px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.door-check__scanner-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.door-check__scanner-hint small {
+    display: block;
+    margin-top: 6px;
+    opacity: 0.6;
+    font-size: 12px;
+}
+
+.door-check__camera-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    padding: 40px;
+}
+
+.door-check__camera-error svg {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+/* ─── Result Overlay ─── */
+.door-check__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 40px;
+    text-align: center;
+    color: #fff;
+    z-index: 10;
+    animation: door-check-fade-in 0.2s ease-out;
+}
+
+.door-check__overlay--valid {
+    background: var(--success);
+}
+
+.door-check__overlay--already_used {
+    background: var(--warning);
+}
+
+.door-check__overlay--cancelled,
+.door-check__overlay--invalid {
+    background: var(--danger);
+}
+
+.door-check__overlay-icon {
+    font-size: 64px;
+}
+
+.door-check__overlay-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.door-check__overlay-name {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.door-check__overlay-detail {
+    font-size: 15px;
+    opacity: 0.85;
+}
+
+/* ─── Manual Search ─── */
+.door-check__manual {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.door-check__search-form {
+    display: flex;
+    gap: 8px;
+}
+
+.door-check__search-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-lg);
+    font-size: 15px;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.door-check__search-input:focus {
+    border-color: var(--primary);
+}
+
+.door-check__search-input::placeholder {
+    color: var(--text-disabled);
+}
+
+.door-check__customer-info {
+    padding: 12px 16px;
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+}
+
+.door-check__customer-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.door-check__customer-id {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* ─── Ticket List ─── */
+.door-check__ticket-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.door-check__ticket-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    gap: 12px;
+}
+
+.door-check__ticket-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.door-check__ticket-type {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.door-check__ticket-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.door-check__ticket-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.door-check__ticket-status--VALID {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.door-check__ticket-status--USED {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+}
+
+.door-check__ticket-status--CANCELLED {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+/* ─── Feedback toast (manual mode) ─── */
+.door-check__toast {
+    padding: 12px 16px;
+    border-radius: var(--r-lg);
+    color: #fff;
+    font-weight: 500;
+    font-size: 14px;
+    text-align: center;
+    animation: door-check-fade-in 0.2s ease-out;
+}
+
+.door-check__toast--valid {
+    background: var(--success);
+}
+
+.door-check__toast--already_used {
+    background: var(--warning);
+}
+
+.door-check__toast--cancelled,
+.door-check__toast--invalid {
+    background: var(--danger);
+}
+
+/* ─── Empty / Loading ─── */
+.door-check__empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px 20px;
+    font-size: 14px;
+}
+
+.door-check__loading {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 24px;
+}
+
+/* ─── Animations ─── */
+@keyframes door-check-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 600px) {
+    .door-check__header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .door-check__stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .door-check__scanner {
+        min-height: 350px;
+    }
+
+    .door-check__overlay-icon {
+        font-size: 48px;
+    }
+
+    .door-check__overlay-title {
+        font-size: 22px;
+    }
+}
