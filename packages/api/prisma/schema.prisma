@@ -57,6 +57,7 @@ model Event {
   paymentMethods PaymentMethod[]
   exchangeRates ExchangeRate[]
   orders Order[]
+  tickets Ticket[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -111,6 +112,7 @@ model TicketType {
   saleStartsAt  DateTime?
   saleEndsAt    DateTime?
   orderItems    OrderItem[]
+  tickets       Ticket[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
@@ -149,6 +151,7 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
+  tickets   Ticket[]
 }
 
 model Order {
@@ -166,6 +169,7 @@ model Order {
   createdAt      DateTime     @default(now())
   items          OrderItem[]
   payments       Payment[]
+  tickets        Ticket[]
 }
 
 model OrderItem {
@@ -178,6 +182,7 @@ model OrderItem {
   unitPrice    Decimal
   currency     String
   subtotal     Decimal
+  tickets      Ticket[]
 }
 
 model Payment {
@@ -194,4 +199,29 @@ model Payment {
   verifiedBy      User          @relation("PaymentsVerifiedBy", fields: [verifiedById], references: [id])
   verifiedById    String
   verifiedAt      DateTime      @default(now())
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
+model Ticket {
+  id           String       @id @default(uuid())
+  event        Event        @relation(fields: [eventId], references: [id])
+  eventId      String
+  order        Order        @relation(fields: [orderId], references: [id])
+  orderId      String
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+  orderItemId  String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  customerId   String
+  ticketType   TicketType   @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId String
+  qrCode       String       @unique
+  qrSignature  String
+  status       TicketStatus @default(VALID)
+  issuedAt     DateTime     @default(now())
+  usedAt       DateTime?
 }

@@ -16,6 +16,7 @@ import IOrderRepository, {
     OrderFilters,
 } from '../../core/interfaces/repositories/IOrderRepository';
 import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
+import TicketsService from '../tickets/tickets.service';
 
 import SalesMapper from './sales.mapper';
 
@@ -26,6 +27,7 @@ export default class SalesService {
         private readonly customerRepository: ICustomerRepository,
         private readonly ticketTypeRepository: ITicketTypeRepository,
         private readonly exchangeRateRepository: IExchangeRateRepository,
+        private readonly ticketsService: TicketsService,
     ) {}
 
     async createSale(
@@ -74,7 +76,7 @@ export default class SalesService {
             );
             if (!decremented) throw new InsufficientTicketsError();
 
-            return this.orderRepository.create(
+            const createdOrder = await this.orderRepository.create(
                 {
                     eventId,
                     customerId: customer.id,
@@ -97,9 +99,21 @@ export default class SalesService {
                 },
                 tx,
             );
-        });
 
-        // TODO: emit tickets (issue de Generación de Tickets)
+            await this.ticketsService.emitTicketsForOrder(
+                eventId,
+                createdOrder.id,
+                customer.id,
+                (createdOrder.items ?? []).map((item) => ({
+                    orderItemId: item.id,
+                    ticketTypeId: item.ticketTypeId,
+                    quantity: item.quantity,
+                })),
+                tx,
+            );
+
+            return createdOrder;
+        });
 
         return SalesMapper.toOrderDetail(order);
     }

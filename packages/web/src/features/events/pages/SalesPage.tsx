@@ -5,6 +5,7 @@ import {
     PaymentMethodType,
     OrderSummaryType,
     OrderDetailType,
+    TicketSummaryType,
     sumPaymentsInUSD,
 } from '@eventflow/shared';
 import {
@@ -19,6 +20,8 @@ import {
     faCheck,
     faTrash,
     faSearch,
+    faDownload,
+    faTicket,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +34,7 @@ import { useEvent } from '../context/EventContext';
 import { exchangeRateService } from '../services/exchangeRateService';
 import { paymentMethodService } from '../services/paymentMethodService';
 import { salesService } from '../services/salesService';
+import { ticketService } from '../services/ticketService';
 import { ticketTypeService } from '../services/ticketTypeService';
 
 /* ─── Helpers ─── */
@@ -100,6 +104,47 @@ type Step = 1 | 2 | 3;
 
 /* ─── Order detail modal ─── */
 function OrderDetailModal({ order, onClose }: { order: OrderDetailType; onClose: () => void }) {
+    const { eventId } = useParams<{ eventId: string }>();
+    const [tickets, setTickets] = useState<TicketSummaryType[]>([]);
+    const [loadingTickets, setLoadingTickets] = useState(true);
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!eventId) return;
+        let cancelled = false;
+        ticketService
+            .listByOrder(eventId, order.id)
+            .then((res) => {
+                if (!cancelled) setTickets(res.tickets);
+            })
+            .catch(() => {
+                if (!cancelled) setTickets([]);
+            })
+            .finally(() => {
+                if (!cancelled) setLoadingTickets(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [eventId, order.id]);
+
+    const handleDownload = async (ticketId: string) => {
+        if (!eventId) return;
+        setDownloadingId(ticketId);
+        try {
+            await ticketService.downloadTicket(eventId, ticketId);
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    const handleDownloadAll = async () => {
+        if (!eventId) return;
+        for (const t of tickets) {
+            await ticketService.downloadTicket(eventId, t.id);
+        }
+    };
+
     return (
         <div
             style={{
@@ -257,6 +302,105 @@ function OrderDetailModal({ order, onClose }: { order: OrderDetailType; onClose:
                         ))}
                     </section>
 
+                    <section>
+                        <p
+                            style={{
+                                fontSize: '0.75rem',
+                                color: 'var(--text-secondary)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                marginBottom: '0.5rem',
+                            }}
+                        >
+                            Tickets
+                        </p>
+                        {loadingTickets ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                <FontAwesomeIcon icon={faSpinner} spin /> Cargando tickets...
+                            </p>
+                        ) : tickets.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                No hay tickets generados para esta orden.
+                            </p>
+                        ) : (
+                            <>
+                                {tickets.map((t) => (
+                                    <div
+                                        key={t.id}
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '0.4rem 0',
+                                            borderBottom: '1px solid var(--border)',
+                                        }}
+                                    >
+                                        <span style={{ fontSize: '0.85rem' }}>
+                                            <FontAwesomeIcon
+                                                icon={faTicket}
+                                                style={{
+                                                    marginRight: '0.4rem',
+                                                    color: 'var(--primary)',
+                                                }}
+                                            />
+                                            {t.ticketTypeName}
+                                            <span
+                                                style={{
+                                                    marginLeft: '0.5rem',
+                                                    fontSize: '0.75rem',
+                                                    padding: '0.1rem 0.4rem',
+                                                    borderRadius: 4,
+                                                    background:
+                                                        t.status === 'VALID'
+                                                            ? 'var(--success-light)'
+                                                            : t.status === 'USED'
+                                                              ? 'var(--bg-surface)'
+                                                              : 'var(--danger-light, #fee)',
+                                                    color:
+                                                        t.status === 'VALID'
+                                                            ? 'var(--success)'
+                                                            : t.status === 'USED'
+                                                              ? 'var(--text-secondary)'
+                                                              : 'var(--danger, red)',
+                                                }}
+                                            >
+                                                {t.status}
+                                            </span>
+                                        </span>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            onClick={() => void handleDownload(t.id)}
+                                            disabled={downloadingId === t.id}
+                                            style={{ fontSize: '0.8rem' }}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={
+                                                    downloadingId === t.id ? faSpinner : faDownload
+                                                }
+                                                spin={downloadingId === t.id}
+                                            />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => void handleDownloadAll()}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        fontSize: '0.8rem',
+                                        width: '100%',
+                                    }}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDownload}
+                                        style={{ marginRight: '0.4rem' }}
+                                    />
+                                    Descargar todos los tickets
+                                </button>
+                            </>
+                        )}
+                    </section>
+
                     <div
                         style={{
                             display: 'flex',
@@ -303,6 +447,9 @@ function NewSaleModal({
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [successOrder, setSuccessOrder] = useState<OrderDetailType | null>(null);
+    const [successTickets, setSuccessTickets] = useState<TicketSummaryType[]>([]);
+    const [loadingTickets, setLoadingTickets] = useState(false);
+    const [downloadingTicketId, setDownloadingTicketId] = useState<string | null>(null);
 
     const form = useForm<SaleToCreateType>({
         resolver: zodResolver(SaleToCreateSchema) as Resolver<SaleToCreateType>,
@@ -347,6 +494,25 @@ function NewSaleModal({
         }
         void loadFormData();
     }, [eventId]);
+
+    useEffect(() => {
+        if (!successOrder) return;
+        let cancelled = false;
+        ticketService
+            .listByOrder(eventId, successOrder.id)
+            .then((res) => {
+                if (!cancelled) setSuccessTickets(res.tickets);
+            })
+            .catch(() => {
+                if (!cancelled) setSuccessTickets([]);
+            })
+            .finally(() => {
+                if (!cancelled) setLoadingTickets(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [eventId, successOrder]);
 
     const selectedTicketType = ticketTypes.find((tt) => tt.id === watchTicketTypeId);
 
@@ -460,18 +626,116 @@ function NewSaleModal({
                         {successOrder.items[0]?.quantity}× {successOrder.items[0]?.ticketTypeName} —{' '}
                         {fmtUSD(successOrder.totalAmount)}
                     </p>
-                    <p
+                    <div
                         style={{
                             fontSize: '0.85rem',
-                            color: 'var(--text-secondary)',
                             padding: '0.75rem',
                             background: 'var(--bg-surface)',
                             borderRadius: 8,
                             marginBottom: '1.5rem',
+                            textAlign: 'left',
                         }}
                     >
-                        Los tickets se generarán próximamente (módulo en desarrollo).
-                    </p>
+                        {loadingTickets ? (
+                            <p
+                                style={{
+                                    color: 'var(--text-secondary)',
+                                    margin: 0,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faSpinner} spin /> Cargando tickets...
+                            </p>
+                        ) : successTickets.length === 0 ? (
+                            <p
+                                style={{
+                                    color: 'var(--text-secondary)',
+                                    margin: 0,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                No se encontraron tickets.
+                            </p>
+                        ) : (
+                            <>
+                                <p
+                                    style={{
+                                        fontWeight: 600,
+                                        margin: '0 0 0.5rem',
+                                        color: 'var(--text-primary)',
+                                    }}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faTicket}
+                                        style={{ marginRight: '0.4rem' }}
+                                    />
+                                    {successTickets.length} ticket
+                                    {successTickets.length > 1 ? 's' : ''} generado
+                                    {successTickets.length > 1 ? 's' : ''}
+                                </p>
+                                {successTickets.map((t) => (
+                                    <div
+                                        key={t.id}
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '0.3rem 0',
+                                            borderBottom: '1px solid var(--border)',
+                                        }}
+                                    >
+                                        <span style={{ fontSize: '0.8rem' }}>
+                                            {t.ticketTypeName} — {t.qrCode.slice(0, 8)}
+                                        </span>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            style={{
+                                                fontSize: '0.75rem',
+                                                padding: '0.2rem 0.5rem',
+                                            }}
+                                            disabled={downloadingTicketId === t.id}
+                                            onClick={() => {
+                                                setDownloadingTicketId(t.id);
+                                                void ticketService
+                                                    .downloadTicket(eventId, t.id)
+                                                    .finally(() => setDownloadingTicketId(null));
+                                            }}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={
+                                                    downloadingTicketId === t.id
+                                                        ? faSpinner
+                                                        : faDownload
+                                                }
+                                                spin={downloadingTicketId === t.id}
+                                            />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        fontSize: '0.8rem',
+                                        width: '100%',
+                                    }}
+                                    onClick={() => {
+                                        void (async () => {
+                                            for (const t of successTickets) {
+                                                await ticketService.downloadTicket(eventId, t.id);
+                                            }
+                                        })();
+                                    }}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faDownload}
+                                        style={{ marginRight: '0.4rem' }}
+                                    />
+                                    Descargar todos
+                                </button>
+                            </>
+                        )}
+                    </div>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                         <button
                             className="btn btn-ghost"
