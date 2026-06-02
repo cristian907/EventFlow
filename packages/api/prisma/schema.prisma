@@ -28,6 +28,7 @@ model User {
   exchangeRatesSet ExchangeRate[]
   ordersSold Order[] @relation("OrdersSoldBy")
   paymentsVerified Payment[] @relation("PaymentsVerifiedBy")
+  accessLogsScanned AccessLog[] @relation("AccessLogsScannedBy")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -58,6 +59,7 @@ model Event {
   exchangeRates ExchangeRate[]
   orders Order[]
   tickets Ticket[]
+  accessLogs AccessLog[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -224,4 +226,31 @@ model Ticket {
   status       TicketStatus @default(VALID)
   issuedAt     DateTime     @default(now())
   usedAt       DateTime?
+  accessLogs   AccessLog[]
+}
+
+enum AccessResult {
+  VALID
+  ALREADY_USED
+  INVALID
+}
+
+enum AccessMethod {
+  QR
+  MANUAL
+}
+
+model AccessLog {
+  id          String       @id @default(uuid())
+  event       Event        @relation(fields: [eventId], references: [id])
+  eventId     String
+  ticket      Ticket?      @relation(fields: [ticketId], references: [id])
+  ticketId    String?
+  scannedBy   User         @relation("AccessLogsScannedBy", fields: [scannedById], references: [id])
+  scannedById String
+  result      AccessResult
+  method      AccessMethod
+  scannedAt   DateTime     @default(now())
+
+  @@index([eventId, scannedAt])
 }
