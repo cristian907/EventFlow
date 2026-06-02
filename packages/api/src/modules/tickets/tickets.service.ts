@@ -4,6 +4,7 @@ import Ticket from '../../core/entities/Ticket';
 import {
     InvalidQrSignatureError,
     TicketAlreadyUsedError,
+    TicketEventMismatchError,
     TicketNotFoundError,
 } from '../../core/errors/BusinessErrors';
 import { ITransactionContext } from '../../core/interfaces/ITransactionContext';
@@ -81,17 +82,23 @@ export default class TicketsService {
         return { ticket, qrBase64 };
     }
 
-async verifyAndMarkUsed(qrDataBase64: string): Promise<Ticket> {
-    let decoded: { payload: { qrCode: string; eventId: string; ticketTypeId: string }; signature: string };
-    try {
-        decoded = this.cryptoService.decodeQrData(qrDataBase64);
-    } catch {
-        throw new InvalidQrSignatureError();
-    }
+    async verifyAndMarkUsed(eventId: string, qrDataBase64: string): Promise<Ticket> {
+        let decoded: {
+            payload: { qrCode: string; eventId: string; ticketTypeId: string };
+            signature: string;
+        };
+        try {
+            decoded = this.cryptoService.decodeQrData(qrDataBase64);
+        } catch {
+            throw new InvalidQrSignatureError();
+        }
 
-    const { payload, signature } = decoded;
-    const valid = this.cryptoService.verifySignature(payload, signature);
-    if (!valid) throw new InvalidQrSignatureError();
+        const { payload, signature } = decoded;
+        const valid = this.cryptoService.verifySignature(payload, signature);
+        if (!valid) throw new InvalidQrSignatureError();
+
+        if (payload.eventId !== eventId) throw new TicketEventMismatchError();
+
         const ticket = await this.ticketRepository.markAsUsed(payload.qrCode);
         if (!ticket) throw new TicketAlreadyUsedError();
         return ticket;

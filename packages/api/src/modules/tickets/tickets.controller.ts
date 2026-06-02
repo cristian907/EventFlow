@@ -44,8 +44,9 @@ export default class TicketsController {
 
     verify = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
+            const eventId = String(req.params.eventId);
             const { qrData } = req.body;
-            const ticket = await this.ticketsService.verifyAndMarkUsed(qrData);
+            const ticket = await this.ticketsService.verifyAndMarkUsed(eventId, qrData);
             res.json({
                 valid: true,
                 ticketId: ticket.id,

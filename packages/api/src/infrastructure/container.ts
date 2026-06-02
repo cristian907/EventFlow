@@ -1,3 +1,4 @@
+import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAuthModule } from '../modules/auth';
 import { createEventsModule } from '../modules/events';
@@ -34,9 +35,14 @@ export const repositories = {
 
 const txManager = new PrismaTransactionManager(prisma);
 
+const ticketQrSecret = process.env.TICKET_QR_SECRET;
+if (!ticketQrSecret) {
+    throw new EnvironmentVariableError('TICKET_QR_SECRET');
+}
+
 const { router: ticketsRouter, ticketsService } = createTicketsModule(
     repositories.ticket,
-    process.env.TICKET_QR_SECRET || '',
+    ticketQrSecret,
 );
 
 export const modules = {

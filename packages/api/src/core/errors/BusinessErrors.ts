@@ -268,3 +268,12 @@ export class InvalidQrSignatureError extends BusinessError {
         super('La firma del código QR es inválida.');
     }
 }
+
+export class TicketEventMismatchError extends BusinessError {
+    public readonly name = 'TicketEventMismatchError';
+    public readonly statusCode = 403;
+
+    constructor() {
+        super('El ticket no pertenece a este evento.');
+    }
+}
