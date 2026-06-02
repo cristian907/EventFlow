@@ -6,6 +6,7 @@ import { createPaymentMethodsModule } from '../modules/payment-methods';
 import { createSalesModule } from '../modules/sales';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
+import { createTicketsModule } from '../modules/tickets';
 import { createUsersModule } from '../modules/users';
 
 import PrismaTransactionManager from './PrismaTransactionManager';
@@ -15,6 +16,7 @@ import PrismaEventRepository from './repositories/PrismaEventRepository';
 import PrismaExchangeRateRepository from './repositories/PrismaExchangeRateRepository';
 import PrismaOrderRepository from './repositories/PrismaOrderRepository';
 import PrismaPaymentMethodRepository from './repositories/PrismaPaymentMethodRepository';
+import PrismaTicketRepository from './repositories/PrismaTicketRepository';
 import PrismaTicketTypeRepository from './repositories/PrismaTicketTypeRepository';
 import PrismaUserRepository from './repositories/PrismaUserRepository';
 
@@ -27,9 +29,15 @@ export const repositories = {
     exchangeRate: new PrismaExchangeRateRepository(prisma),
     customer: new PrismaCustomerRepository(prisma),
     order: new PrismaOrderRepository(prisma),
+    ticket: new PrismaTicketRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
+
+const { router: ticketsRouter, ticketsService } = createTicketsModule(
+    repositories.ticket,
+    process.env.TICKET_QR_SECRET || '',
+);
 
 export const modules = {
     auth: createAuthModule(repositories.user),
@@ -58,5 +66,7 @@ export const modules = {
         repositories.customer,
         repositories.ticketType,
         repositories.exchangeRate,
+        ticketsService,
     ),
+    'events/:eventId': ticketsRouter,
 };

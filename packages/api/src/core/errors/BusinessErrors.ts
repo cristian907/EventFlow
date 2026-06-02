@@ -241,3 +241,30 @@ export class TicketTypeNotSellableError extends BusinessError {
         super(`El tipo de entrada no está disponible para venta: ${reason}`);
     }
 }
+
+export class TicketNotFoundError extends BusinessError {
+    public readonly name = 'TicketNotFoundError';
+    public readonly statusCode = 404;
+
+    constructor(id: string) {
+        super(`No se encontró ningún ticket con el ID ${id}.`);
+    }
+}
+
+export class TicketAlreadyUsedError extends BusinessError {
+    public readonly name = 'TicketAlreadyUsedError';
+    public readonly statusCode = 409;
+
+    constructor() {
+        super('El ticket ya fue utilizado o no es válido.');
+    }
+}
+
+export class InvalidQrSignatureError extends BusinessError {
+    public readonly name = 'InvalidQrSignatureError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('La firma del código QR es inválida.');
+    }
+}

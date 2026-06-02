@@ -5,6 +5,7 @@ import ICustomerRepository from '../../core/interfaces/repositories/ICustomerRep
 import IExchangeRateRepository from '../../core/interfaces/repositories/IExchangeRateRepository';
 import IOrderRepository from '../../core/interfaces/repositories/IOrderRepository';
 import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
+import TicketsService from '../tickets/tickets.service';
 
 import SalesController from './sales.controller';
 import createSalesRoutes from './sales.routes';
@@ -16,6 +17,7 @@ export function createSalesModule(
     customerRepository: ICustomerRepository,
     ticketTypeRepository: ITicketTypeRepository,
     exchangeRateRepository: IExchangeRateRepository,
+    ticketsService: TicketsService,
 ): Router {
     const salesService = new SalesService(
         txManager,
@@ -23,6 +25,7 @@ export function createSalesModule(
         customerRepository,
         ticketTypeRepository,
         exchangeRateRepository,
+        ticketsService,
     );
     const salesController = new SalesController(salesService);
     return createSalesRoutes(salesController);
