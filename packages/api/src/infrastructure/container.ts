@@ -3,13 +3,17 @@ import { createAuthModule } from '../modules/auth';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
 import { createPaymentMethodsModule } from '../modules/payment-methods';
+import { createSalesModule } from '../modules/sales';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
 import { createUsersModule } from '../modules/users';
 
+import PrismaTransactionManager from './PrismaTransactionManager';
+import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
 import PrismaEventRepository from './repositories/PrismaEventRepository';
 import PrismaExchangeRateRepository from './repositories/PrismaExchangeRateRepository';
+import PrismaOrderRepository from './repositories/PrismaOrderRepository';
 import PrismaPaymentMethodRepository from './repositories/PrismaPaymentMethodRepository';
 import PrismaTicketTypeRepository from './repositories/PrismaTicketTypeRepository';
 import PrismaUserRepository from './repositories/PrismaUserRepository';
@@ -21,7 +25,11 @@ export const repositories = {
     eventMember: new PrismaEventMemberRepository(prisma),
     paymentMethod: new PrismaPaymentMethodRepository(prisma),
     exchangeRate: new PrismaExchangeRateRepository(prisma),
+    customer: new PrismaCustomerRepository(prisma),
+    order: new PrismaOrderRepository(prisma),
 };
+
+const txManager = new PrismaTransactionManager(prisma);
 
 export const modules = {
     auth: createAuthModule(repositories.user),
@@ -43,5 +51,12 @@ export const modules = {
     'events/:eventId/exchange-rates': createExchangeRatesModule(
         repositories.exchangeRate,
         repositories.event,
+    ),
+    'events/:eventId/sales': createSalesModule(
+        txManager,
+        repositories.order,
+        repositories.customer,
+        repositories.ticketType,
+        repositories.exchangeRate,
     ),
 };

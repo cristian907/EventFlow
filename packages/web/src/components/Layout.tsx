@@ -18,6 +18,7 @@ import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useEvent } from '../features/events/context/EventContext';
+import { useCurrentExchangeRate } from '../features/events/hooks/useCurrentExchangeRate';
 
 interface NavItem {
     id: string;
@@ -104,6 +105,7 @@ const EVENT_NAV_ITEMS = (eventId: string): EventNavItem[] => [
 export function Layout() {
     const { user, isLoading, logoutUser } = useAuth();
     const { currentEvent, eventRole } = useEvent();
+    const { rate: currentRate, isLoading: rateLoading } = useCurrentExchangeRate(currentEvent?.id);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const location = useLocation();
@@ -322,22 +324,55 @@ export function Layout() {
                 </nav>
 
                 {/* Exchange Rate indicator */}
-                <div className="rate-indicator">
-                    <div className="rate-label">Tasa USD/Bs. activa</div>
-                    <div className="rate-value mono">
-                        36.50{' '}
-                        <span
-                            style={{
-                                color: 'var(--text-secondary)',
-                                fontWeight: 400,
-                                fontSize: 12,
-                            }}
-                        >
-                            Bs.
-                        </span>
+                {currentEvent && (
+                    <div className="rate-indicator">
+                        <div className="rate-label">Tasa USD/Bs. activa</div>
+                        {rateLoading ? (
+                            <div
+                                className="rate-value mono"
+                                style={{ color: 'var(--text-secondary)', fontSize: 13 }}
+                            >
+                                Cargando...
+                            </div>
+                        ) : currentRate ? (
+                            <>
+                                <div className="rate-value mono">
+                                    {currentRate.rate.toLocaleString('es-VE', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}{' '}
+                                    <span
+                                        style={{
+                                            color: 'var(--text-secondary)',
+                                            fontWeight: 400,
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        Bs.
+                                    </span>
+                                </div>
+                                <div className="rate-time">
+                                    {new Date(currentRate.effectiveAt).toLocaleString('es-VE', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div
+                                    className="rate-value mono"
+                                    style={{ color: 'var(--text-secondary)', fontSize: 13 }}
+                                >
+                                    Sin tasa activa
+                                </div>
+                                <div className="rate-time">Configura una en Ajustes</div>
+                            </>
+                        )}
                     </div>
-                    <div className="rate-time">Actualizado hoy</div>
-                </div>
+                )}
 
                 {/* Profile Pill */}
                 <div style={{ position: 'relative' }}>

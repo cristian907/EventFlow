@@ -26,6 +26,8 @@ model User {
   createdByUser User? @relation("UserCreatedBy", fields: [createdBy], references: [id])
   createdBy String?
   exchangeRatesSet ExchangeRate[]
+  ordersSold Order[] @relation("OrdersSoldBy")
+  paymentsVerified Payment[] @relation("PaymentsVerifiedBy")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -54,6 +56,7 @@ model Event {
   ticketTypes TicketType[]
   paymentMethods PaymentMethod[]
   exchangeRates ExchangeRate[]
+  orders Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -95,32 +98,34 @@ enum Currency {
 }
 
 model TicketType {
-  id            String    @id @default(uuid())
-  event         Event     @relation(fields: [eventId], references: [id])
+  id            String      @id @default(uuid())
+  event         Event       @relation(fields: [eventId], references: [id])
   eventId       String
   name          String
-  description   String    @default("")
+  description   String      @default("")
   price         Float
-  currency      Currency  @default(USD)
+  currency      Currency    @default(USD)
   totalQuantity Int
-  soldQuantity  Int       @default(0)
-  isActive      Boolean   @default(true)
+  soldQuantity  Int         @default(0)
+  isActive      Boolean     @default(true)
   saleStartsAt  DateTime?
   saleEndsAt    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model PaymentMethod {
-  id        String   @id @default(uuid())
-  event     Event    @relation(fields: [eventId], references: [id])
+  id        String    @id @default(uuid())
+  event     Event     @relation(fields: [eventId], references: [id])
   eventId   String
   name      String
   details   String
   currency  Currency
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean   @default(true)
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model ExchangeRate {
@@ -132,4 +137,61 @@ model ExchangeRate {
   setBy       String
   effectiveAt DateTime @default(now())
   createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  idNumber  String   @unique
+  fullName  String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Order {
+  id             String       @id @default(uuid())
+  event          Event        @relation(fields: [eventId], references: [id])
+  eventId        String
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  customerId     String
+  soldBy         User         @relation("OrdersSoldBy", fields: [soldById], references: [id])
+  soldById       String
+  exchangeRate   ExchangeRate @relation(fields: [exchangeRateId], references: [id])
+  exchangeRateId String
+  currency       String       @default("USD")
+  totalAmount    Decimal
+  createdAt      DateTime     @default(now())
+  items          OrderItem[]
+  payments       Payment[]
+}
+
+model OrderItem {
+  id           String     @id @default(uuid())
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderId      String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId String
+  quantity     Int
+  unitPrice    Decimal
+  currency     String
+  subtotal     Decimal
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  order           Order         @relation(fields: [orderId], references: [id])
+  orderId         String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId String
+  amount          Decimal
+  currency        String
+  reference       String?
+  receiptUrl      String?
+  status          String        @default("APPROVED")
+  verifiedBy      User          @relation("PaymentsVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedById    String
+  verifiedAt      DateTime      @default(now())
 }

@@ -11,11 +11,20 @@ export default function createExchangeRatesRoutes(
 ): Router {
     const router = Router({ mergeParams: true });
 
-    router.use(authMiddleware, authorizeEventRole('admin'));
+    router.use(authMiddleware);
 
-    router.post('/', validateSchema(ExchangeRateToCreateSchema), exchangeRatesController.create);
-    router.get('/current', exchangeRatesController.getCurrent);
-    router.get('/', exchangeRatesController.list);
+    router.post(
+        '/',
+        authorizeEventRole('admin'),
+        validateSchema(ExchangeRateToCreateSchema),
+        exchangeRatesController.create,
+    );
+    router.get(
+        '/current',
+        authorizeEventRole('admin', 'collaborator'),
+        exchangeRatesController.getCurrent,
+    );
+    router.get('/', authorizeEventRole('admin', 'collaborator'), exchangeRatesController.list);
 
     return router;
 }
