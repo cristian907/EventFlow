@@ -1,5 +1,6 @@
 import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
+import { createAccessModule } from '../modules/access';
 import { createAuthModule } from '../modules/auth';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
@@ -7,10 +8,11 @@ import { createPaymentMethodsModule } from '../modules/payment-methods';
 import { createSalesModule } from '../modules/sales';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
-import { createTicketsModule } from '../modules/tickets';
+import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
 import { createUsersModule } from '../modules/users';
 
 import PrismaTransactionManager from './PrismaTransactionManager';
+import PrismaAccessLogRepository from './repositories/PrismaAccessLogRepository';
 import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
 import PrismaEventRepository from './repositories/PrismaEventRepository';
@@ -31,6 +33,7 @@ export const repositories = {
     customer: new PrismaCustomerRepository(prisma),
     order: new PrismaOrderRepository(prisma),
     ticket: new PrismaTicketRepository(prisma),
+    accessLog: new PrismaAccessLogRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
@@ -40,9 +43,11 @@ if (!ticketQrSecret) {
     throw new EnvironmentVariableError('TICKET_QR_SECRET');
 }
 
+const cryptoService = new TicketCryptoService(ticketQrSecret);
+
 const { router: ticketsRouter, ticketsService } = createTicketsModule(
     repositories.ticket,
-    ticketQrSecret,
+    cryptoService,
 );
 
 export const modules = {
@@ -75,4 +80,9 @@ export const modules = {
         ticketsService,
     ),
     'events/:eventId': ticketsRouter,
+    'events/:eventId/access': createAccessModule(
+        repositories.ticket,
+        repositories.accessLog,
+        cryptoService,
+    ),
 };

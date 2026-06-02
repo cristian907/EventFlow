@@ -109,4 +109,37 @@ export default class PrismaTicketRepository implements ITicketRepository {
         });
         return record ? mapToEntity(record as unknown as TicketWithRelations) : null;
     }
+
+    async findByQrCode(qrCode: string): Promise<Ticket | null> {
+        const record = await this.prisma.ticket.findUnique({
+            where: { qrCode },
+            include: ticketInclude,
+        });
+        return record ? mapToEntity(record as unknown as TicketWithRelations) : null;
+    }
+
+    async findByCustomerIdNumberAndEvent(eventId: string, idNumber: string): Promise<Ticket[]> {
+        const records = await this.prisma.ticket.findMany({
+            where: { eventId, customer: { idNumber } },
+            include: ticketInclude,
+            orderBy: { issuedAt: 'asc' },
+        });
+        return (records as unknown as TicketWithRelations[]).map(mapToEntity);
+    }
+
+    async markAsUsedById(eventId: string, ticketId: string): Promise<Ticket | null> {
+        const result = await this.prisma.$executeRaw`
+            UPDATE "Ticket"
+            SET status = 'USED', "usedAt" = NOW()
+            WHERE id::text = ${ticketId} AND "eventId"::text = ${eventId} AND status = 'VALID'
+        `;
+
+        if (result === 0) return null;
+
+        const record = await this.prisma.ticket.findFirst({
+            where: { id: ticketId, eventId },
+            include: ticketInclude,
+        });
+        return record ? mapToEntity(record as unknown as TicketWithRelations) : null;
+    }
 }
