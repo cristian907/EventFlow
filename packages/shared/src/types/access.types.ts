@@ -5,7 +5,7 @@ export interface AccessTicketInfo {
     id: string;
     ticketTypeName: string;
     customerName: string;
-    status: string;
+    status: 'VALID' | 'USED' | 'CANCELLED';
     usedAt?: string;
 }
 

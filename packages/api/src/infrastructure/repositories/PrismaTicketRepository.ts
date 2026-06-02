@@ -131,7 +131,7 @@ export default class PrismaTicketRepository implements ITicketRepository {
         const result = await this.prisma.$executeRaw`
             UPDATE "Ticket"
             SET status = 'USED', "usedAt" = NOW()
-            WHERE id::text = ${ticketId} AND "eventId"::text = ${eventId} AND status = 'VALID'
+            WHERE id = ${ticketId} AND "eventId" = ${eventId} AND status = 'VALID'
         `;
 
         if (result === 0) return null;
