@@ -81,11 +81,17 @@ export default class TicketsService {
         return { ticket, qrBase64 };
     }
 
-    async verifyAndMarkUsed(qrDataBase64: string): Promise<Ticket> {
-        const { payload, signature } = this.cryptoService.decodeQrData(qrDataBase64);
-        const valid = this.cryptoService.verifySignature(payload, signature);
-        if (!valid) throw new InvalidQrSignatureError();
+async verifyAndMarkUsed(qrDataBase64: string): Promise<Ticket> {
+    let decoded: { payload: { qrCode: string; eventId: string; ticketTypeId: string }; signature: string };
+    try {
+        decoded = this.cryptoService.decodeQrData(qrDataBase64);
+    } catch {
+        throw new InvalidQrSignatureError();
+    }
 
+    const { payload, signature } = decoded;
+    const valid = this.cryptoService.verifySignature(payload, signature);
+    if (!valid) throw new InvalidQrSignatureError();
         const ticket = await this.ticketRepository.markAsUsed(payload.qrCode);
         if (!ticket) throw new TicketAlreadyUsedError();
         return ticket;

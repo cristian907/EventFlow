@@ -18,10 +18,17 @@ export default class TicketCryptoService {
         return crypto.createHmac('sha256', this.qrSecret).update(data).digest('hex');
     }
 
-    verifySignature(payload: QrPayload, signature: string): boolean {
-        const expected = this.signPayload(payload);
-        return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
+verifySignature(payload: QrPayload, signature: string): boolean {
+    const expected = this.signPayload(payload);
+    try {
+        const expectedBuf = Buffer.from(expected, 'hex');
+        const signatureBuf = Buffer.from(signature, 'hex');
+        if (expectedBuf.length !== signatureBuf.length) return false;
+        return crypto.timingSafeEqual(expectedBuf, signatureBuf);
+    } catch {
+        return false;
     }
+}
 
     encodeQrData(payload: QrPayload, signature: string): string {
         const qrData = { ...payload, signature };
