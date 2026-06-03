@@ -24,6 +24,7 @@ export default class EventsMapper {
             address: event.address,
             maxCapacity: event.maxCapacity,
             status: event.status,
+            autoSyncBcv: event.autoSyncBcv,
             createdAt: safeIso(event.createdAt) ?? '',
             updatedAt: safeIso(event.updatedAt) ?? '',
         };

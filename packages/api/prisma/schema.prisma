@@ -60,6 +60,7 @@ model Event {
   orders Order[]
   tickets Ticket[]
   accessLogs AccessLog[]
+  autoSyncBcv Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -137,8 +138,9 @@ model ExchangeRate {
   event       Event    @relation(fields: [eventId], references: [id])
   eventId     String
   rate        Decimal
-  setByUser   User     @relation(fields: [setBy], references: [id])
-  setBy       String
+  source      String   @default("manual")
+  setByUser   User?    @relation(fields: [setBy], references: [id])
+  setBy       String?
   effectiveAt DateTime @default(now())
   createdAt   DateTime @default(now())
   orders      Order[]
@@ -253,4 +255,13 @@ model AccessLog {
   scannedAt   DateTime     @default(now())
 
   @@index([eventId, scannedAt])
+}
+
+model BcvRate {
+  id          String    @id @default(uuid())
+  usdRate     Decimal
+  eurRate     Decimal
+  valueDate   DateTime?
+  scrapedAt   DateTime
+  createdAt   DateTime  @default(now())
 }

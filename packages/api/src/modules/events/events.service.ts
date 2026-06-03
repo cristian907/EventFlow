@@ -47,6 +47,7 @@ export default class EventsService {
             address: eventData.address,
             maxCapacity: eventData.maxCapacity,
             imageUrl: eventData.imageUrl || defaultImageUrl,
+            autoSyncBcv: eventData.autoSyncBcv,
         });
 
         return EventsMapper.toEventType(createdEvent);
@@ -138,6 +139,7 @@ export default class EventsService {
         if (data.endDate !== undefined) payload.endDate = new Date(data.endDate);
         if (data.startTime !== undefined) payload.startTime = new Date(data.startTime);
         if (data.endTime !== undefined) payload.endTime = new Date(data.endTime);
+        if (data.autoSyncBcv !== undefined) payload.autoSyncBcv = data.autoSyncBcv;
 
         const updated = await this.eventRepository.update(eventId, payload);
         return EventsMapper.toEventType(updated);

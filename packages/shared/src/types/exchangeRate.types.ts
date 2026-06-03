@@ -4,8 +4,9 @@ export interface ExchangeRateType {
     id: string;
     eventId: string;
     rate: number;
-    setBy: string;
-    setByName: string;
+    source: 'manual' | 'bcv';
+    setBy?: string;
+    setByName?: string;
     effectiveAt: string;
     createdAt: string;
 }

@@ -38,6 +38,7 @@ export default class PrismaEventRepository implements IEventRepository {
             prismaEvent.address,
             prismaEvent.maxCapacity,
             toDomainStatus(prismaEvent.status),
+            prismaEvent.autoSyncBcv,
             prismaEvent.createdAt,
             prismaEvent.updatedAt,
         );
@@ -55,6 +56,7 @@ export default class PrismaEventRepository implements IEventRepository {
         address: string;
         maxCapacity: number;
         imageUrl: string;
+        autoSyncBcv?: boolean;
     }): Promise<Event> {
         const createdEvent = await this.prismaClient.event.create({
             data: {
@@ -69,6 +71,7 @@ export default class PrismaEventRepository implements IEventRepository {
                 address: eventData.address,
                 maxCapacity: eventData.maxCapacity,
                 imageUrl: eventData.imageUrl,
+                autoSyncBcv: eventData.autoSyncBcv ?? false,
                 status: PrismaEventStatus.DRAFT,
                 eventMembers: {
                     create: {
@@ -155,6 +158,7 @@ export default class PrismaEventRepository implements IEventRepository {
             address?: string;
             maxCapacity?: number;
             imageUrl?: string;
+            autoSyncBcv?: boolean;
         },
     ): Promise<Event> {
         const updated = await this.prismaClient.event.update({

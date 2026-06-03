@@ -13,6 +13,7 @@ export default interface IEventRepository {
         address: string;
         maxCapacity: number;
         imageUrl: string;
+        autoSyncBcv?: boolean;
     }): Promise<Event>;
 
     findById(id: string): Promise<Event | null>;
@@ -38,6 +39,7 @@ export default interface IEventRepository {
             address?: string;
             maxCapacity?: number;
             imageUrl?: string;
+            autoSyncBcv?: boolean;
         },
     ): Promise<Event>;
 

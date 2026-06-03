@@ -35,8 +35,9 @@ export function useCurrentExchangeRate(
             try {
                 const { current } = await exchangeRateService.getCurrent(eventId);
                 if (!cancelled) setRate(current);
-            } catch {
+            } catch (err) {
                 if (!cancelled) {
+                    console.error('Error fetching current exchange rate:', err);
                     setRate(null);
                     setError(true);
                 }
@@ -49,6 +50,12 @@ export function useCurrentExchangeRate(
             cancelled = true;
         };
     }, [eventId, tick]);
+
+    useEffect(() => {
+        const handleRefetch = () => setTick((t) => t + 1);
+        window.addEventListener('exchangeRateChanged', handleRefetch);
+        return () => window.removeEventListener('exchangeRateChanged', handleRefetch);
+    }, []);
 
     return { rate, isLoading, error, refetch: () => setTick((t) => t + 1) };
 }

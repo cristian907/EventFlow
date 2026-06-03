@@ -18,6 +18,7 @@ export interface EventType {
     address: string;
     maxCapacity: number;
     status: EventStatus;
+    autoSyncBcv: boolean;
     createdAt: Date | string;
     updatedAt: Date | string;
 }

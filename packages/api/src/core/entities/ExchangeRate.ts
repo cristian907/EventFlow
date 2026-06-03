@@ -3,8 +3,9 @@ export default class ExchangeRate {
         public id: string,
         public eventId: string,
         public rate: number,
-        public setBy: string,
-        public setByName: string,
+        public source: 'manual' | 'bcv',
+        public setBy: string | null,
+        public setByName: string | null,
         public effectiveAt: Date,
         public createdAt: Date,
     ) {}

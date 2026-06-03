@@ -9,6 +9,8 @@ import {
     ExchangeRateToCreateType,
     PaymentMethodType,
     ExchangeRateType,
+    BcvRateType,
+    getEurUsdRate,
 } from '@eventflow/shared';
 import {
     faCog,
@@ -23,6 +25,11 @@ import {
     faBoxOpen,
     faSave,
     faHistory,
+    faSync,
+    faToggleOn,
+    faToggleOff,
+    faGlobe,
+    faUser,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +38,7 @@ import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
+import { bcvService } from '../services/bcvService';
 import { eventService } from '../services/eventService';
 import { exchangeRateService } from '../services/exchangeRateService';
 import { paymentMethodService } from '../services/paymentMethodService';
@@ -904,6 +912,7 @@ function PaymentMethodsTab({ eventId }: { eventId: string }) {
 
 /* ═══════════════════════════════════════════ EXCHANGE RATE TAB ═══════════════════════════════════════════ */
 function ExchangeRateTab({ eventId }: { eventId: string }) {
+    const { currentEvent, setEventContext, eventRole } = useEvent();
     const [state, dispatch] = useReducer(erReducer, {
         current: null,
         history: [],
@@ -915,6 +924,13 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+
+    // BCV state
+    const [bcvRate, setBcvRate] = useState<BcvRateType | null>(null);
+    const [isBcvLoading, setIsBcvLoading] = useState(true);
+    const [isBcvSyncing, setIsBcvSyncing] = useState(false);
+    const [bcvError, setBcvError] = useState<string | null>(null);
+    const [isTogglingAutoSync, setIsTogglingAutoSync] = useState(false);
 
     const {
         register,
@@ -946,13 +962,65 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
         }
     }, [eventId]);
 
+    const fetchBcvRate = useCallback(async () => {
+        setIsBcvLoading(true);
+        setBcvError(null);
+        try {
+            const rate = await bcvService.getRate();
+            setBcvRate(rate);
+        } catch (err) {
+            setBcvError(getApiErrorMessage(err));
+        } finally {
+            setIsBcvLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         void fetchCurrent();
-    }, [fetchCurrent]);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void fetchBcvRate();
+    }, [fetchCurrent, fetchBcvRate]);
 
     useEffect(() => {
         if (showHistory) void fetchHistory();
     }, [showHistory, fetchHistory]);
+
+    const handleBcvSync = async () => {
+        setIsBcvSyncing(true);
+        setBcvError(null);
+        try {
+            const rate = await bcvService.syncRate();
+            setBcvRate(rate);
+            // Refresh event exchange rate in case auto-sync kicked in
+            void fetchCurrent();
+            window.dispatchEvent(new Event('exchangeRateChanged'));
+            if (showHistory) void fetchHistory();
+        } catch (err) {
+            setBcvError(getApiErrorMessage(err));
+        } finally {
+            setIsBcvSyncing(false);
+        }
+    };
+
+    const handleToggleAutoSync = async () => {
+        if (!currentEvent) return;
+        const willBeAutoSync = !currentEvent.autoSyncBcv;
+        setIsTogglingAutoSync(true);
+        try {
+            const updated = await eventService.updateEvent(eventId, {
+                autoSyncBcv: willBeAutoSync,
+            });
+            setEventContext(updated, eventRole);
+
+            if (willBeAutoSync) {
+                await handleBcvSync();
+            }
+        } catch (err) {
+            setBcvError(getApiErrorMessage(err));
+        } finally {
+            setIsTogglingAutoSync(false);
+        }
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onSubmit = async (data: any) => {
@@ -965,6 +1033,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
             setSubmitSuccess(true);
             setTimeout(() => setSubmitSuccess(false), 3000);
             void fetchCurrent();
+            window.dispatchEvent(new Event('exchangeRateChanged'));
             if (showHistory) void fetchHistory();
         } catch (err) {
             setSubmitError(getApiErrorMessage(err));
@@ -982,9 +1051,249 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
             minute: '2-digit',
         });
 
+    const formatAge = (ms: number) => {
+        if (ms < 60000) return 'hace menos de 1 min';
+        const mins = Math.floor(ms / 60000);
+        if (mins < 60) return `hace ${mins} min`;
+        const hours = Math.floor(mins / 60);
+        return `hace ${hours}h ${mins % 60}min`;
+    };
+
+    const autoSyncEnabled = currentEvent?.autoSyncBcv ?? false;
+
     return (
-        <div style={{ maxWidth: 600 }}>
-            {/* Tasa vigente */}
+        <div style={{ maxWidth: 700 }}>
+            {/* ── BCV Global Rate Card ── */}
+            <div
+                style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    borderRadius: 14,
+                    padding: '22px 26px',
+                    marginBottom: 20,
+                    color: '#fff',
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}
+            >
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: -30,
+                        right: -30,
+                        width: 120,
+                        height: 120,
+                        borderRadius: '50%',
+                        background: 'rgba(99, 102, 241, 0.15)',
+                    }}
+                />
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: 14,
+                    }}
+                >
+                    <div>
+                        <p
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                letterSpacing: 1.2,
+                                color: '#94a3b8',
+                                margin: 0,
+                            }}
+                        >
+                            <FontAwesomeIcon icon={faGlobe} style={{ marginRight: 6 }} />
+                            Tasa BCV Oficial
+                        </p>
+                    </div>
+                    <button
+                        className="btn"
+                        onClick={() => {
+                            void handleBcvSync();
+                        }}
+                        disabled={isBcvSyncing}
+                        style={{
+                            background: 'rgba(99, 102, 241, 0.2)',
+                            color: '#a5b4fc',
+                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            borderRadius: 8,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <FontAwesomeIcon icon={faSync} spin={isBcvSyncing} />
+                        Sincronizar
+                    </button>
+                </div>
+
+                {isBcvLoading ? (
+                    <FontAwesomeIcon icon={faSpinner} spin style={{ color: '#a5b4fc' }} />
+                ) : bcvRate ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                        <div>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>USD</p>
+                            <p
+                                style={{
+                                    fontSize: 22,
+                                    fontWeight: 700,
+                                    fontFamily: 'var(--font-mono)',
+                                    margin: 0,
+                                }}
+                            >
+                                {bcvRate.usdRate.toLocaleString('es-VE', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 4,
+                                })}
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        fontWeight: 400,
+                                        color: '#94a3b8',
+                                        marginLeft: 4,
+                                    }}
+                                >
+                                    Bs
+                                </span>
+                            </p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>EUR</p>
+                            <p
+                                style={{
+                                    fontSize: 22,
+                                    fontWeight: 700,
+                                    fontFamily: 'var(--font-mono)',
+                                    margin: 0,
+                                }}
+                            >
+                                {bcvRate.eurRate.toLocaleString('es-VE', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 4,
+                                })}
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        fontWeight: 400,
+                                        color: '#94a3b8',
+                                        marginLeft: 4,
+                                    }}
+                                >
+                                    Bs
+                                </span>
+                            </p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>
+                                EUR/USD
+                            </p>
+                            <p
+                                style={{
+                                    fontSize: 22,
+                                    fontWeight: 700,
+                                    fontFamily: 'var(--font-mono)',
+                                    margin: 0,
+                                }}
+                            >
+                                {getEurUsdRate(bcvRate.eurRate, bcvRate.usdRate).toLocaleString(
+                                    'es-VE',
+                                    { minimumFractionDigits: 4, maximumFractionDigits: 4 },
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+                        {bcvError ?? 'No se pudo obtener la tasa del BCV.'}
+                    </p>
+                )}
+
+                {bcvRate && (
+                    <p
+                        style={{
+                            fontSize: 11,
+                            color: '#64748b',
+                            marginTop: 10,
+                            margin: '10px 0 0',
+                        }}
+                    >
+                        {bcvRate.isStale ? '⚠️ Dato antiguo — ' : '✓ '}
+                        Actualizado {formatAge(bcvRate.ageMs)}
+                        {bcvRate.valueDate && ` · Fecha valor: ${formatDate(bcvRate.valueDate)}`}
+                    </p>
+                )}
+                {bcvError && !bcvRate && (
+                    <p style={{ fontSize: 12, color: '#f87171', marginTop: 8 }}>
+                        <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: 6 }} />
+                        {bcvError}
+                    </p>
+                )}
+            </div>
+
+            {/* ── Auto-Sync Toggle ── */}
+            <div
+                style={{
+                    background: 'var(--bg-elevated)',
+                    border: `1px solid ${autoSyncEnabled ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: 12,
+                    padding: '16px 22px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'border-color 0.2s',
+                }}
+            >
+                <div>
+                    <p
+                        style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            margin: '0 0 2px',
+                        }}
+                    >
+                        Sincronización automática con BCV
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                        {autoSyncEnabled
+                            ? 'La tasa del evento se actualiza automáticamente con el BCV.'
+                            : 'La tasa se gestiona manualmente.'}
+                    </p>
+                </div>
+                <button
+                    onClick={() => {
+                        void handleToggleAutoSync();
+                    }}
+                    disabled={isTogglingAutoSync}
+                    className="btn"
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 4,
+                        fontSize: 28,
+                        color: autoSyncEnabled ? 'var(--primary)' : 'var(--text-secondary)',
+                        transition: 'color 0.2s',
+                        lineHeight: 1,
+                    }}
+                    title={autoSyncEnabled ? 'Desactivar auto-sync' : 'Activar auto-sync'}
+                >
+                    {isTogglingAutoSync ? (
+                        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: 22 }} />
+                    ) : (
+                        <FontAwesomeIcon icon={autoSyncEnabled ? faToggleOn : faToggleOff} />
+                    )}
+                </button>
+            </div>
+
+            {/* ── Tasa vigente del evento ── */}
             <div
                 style={{
                     background: state.current
@@ -1006,7 +1315,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                         marginBottom: 6,
                     }}
                 >
-                    Tasa vigente
+                    Tasa vigente del evento
                 </p>
                 {state.isLoading ? (
                     <FontAwesomeIcon icon={faSpinner} spin style={{ color: 'var(--primary)' }} />
@@ -1035,9 +1344,45 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                 Bs / $
                             </span>
                         </p>
-                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                            Registrada el {formatDate(state.current.effectiveAt)} por{' '}
-                            <strong>{state.current.setByName}</strong>
+                        <p
+                            style={{
+                                fontSize: 12,
+                                color: 'var(--text-secondary)',
+                                marginTop: 6,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                            }}
+                        >
+                            Registrada el {formatDate(state.current.effectiveAt)}
+                            {state.current.setByName ? (
+                                <>
+                                    {' '}
+                                    por <strong>{state.current.setByName}</strong>
+                                </>
+                            ) : null}
+                            <span
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    marginLeft: 6,
+                                    padding: '1px 8px',
+                                    borderRadius: 10,
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    background:
+                                        state.current.source === 'bcv' ? '#dbeafe' : '#fef3c7',
+                                    color: state.current.source === 'bcv' ? '#1d4ed8' : '#92400e',
+                                }}
+                            >
+                                <FontAwesomeIcon
+                                    icon={state.current.source === 'bcv' ? faGlobe : faUser}
+                                    style={{ fontSize: 9 }}
+                                />
+                                {state.current.source === 'bcv' ? 'BCV' : 'Manual'}
+                            </span>
                         </p>
                     </>
                 ) : (
@@ -1047,115 +1392,117 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                 )}
             </div>
 
-            {/* Registrar nueva tasa */}
-            <div
-                style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    padding: '20px 24px',
-                    marginBottom: 24,
-                }}
-            >
-                <h4
+            {/* ── Registrar nueva tasa (manual) ── */}
+            {!autoSyncEnabled && (
+                <div
                     style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: 'var(--text-primary)',
-                        marginBottom: 14,
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 12,
+                        padding: '20px 24px',
+                        marginBottom: 24,
                     }}
                 >
-                    Registrar nueva tasa
-                </h4>
-
-                {submitError && (
-                    <div
+                    <h4
                         style={{
-                            padding: '8px 12px',
-                            background: 'var(--danger-light)',
-                            border: '1px solid var(--danger)',
-                            borderRadius: 8,
-                            color: 'var(--danger)',
-                            fontSize: 13,
-                            marginBottom: 12,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            marginBottom: 14,
                         }}
                     >
-                        {submitError}
-                    </div>
-                )}
-                {submitSuccess && (
-                    <div
-                        style={{
-                            padding: '8px 12px',
-                            background: 'var(--success-light)',
-                            border: '1px solid var(--success)',
-                            borderRadius: 8,
-                            color: 'var(--success)',
-                            fontSize: 13,
-                            marginBottom: 12,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                        }}
-                    >
-                        <FontAwesomeIcon icon={faCheckCircle} />
-                        Tasa registrada correctamente.
-                    </div>
-                )}
+                        Registrar nueva tasa manualmente
+                    </h4>
 
-                <form
-                    onSubmit={(e) => {
-                        void handleSubmit(onSubmit)(e);
-                    }}
-                    style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}
-                >
-                    <div style={{ flex: 1 }}>
-                        <input
-                            {...register('rate')}
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="Ej. 42.50"
+                    {submitError && (
+                        <div
                             style={{
-                                width: '100%',
                                 padding: '8px 12px',
-                                border: '1px solid var(--border)',
+                                background: 'var(--danger-light)',
+                                border: '1px solid var(--danger)',
                                 borderRadius: 8,
-                                fontSize: 14,
-                                fontFamily: 'var(--font-mono)',
-                                background: 'var(--bg-elevated)',
-                                color: 'var(--text-primary)',
-                                boxSizing: 'border-box',
+                                color: 'var(--danger)',
+                                fontSize: 13,
+                                marginBottom: 12,
                             }}
-                        />
-                        {errors.rate && (
-                            <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>
-                                {errors.rate.message}
-                            </p>
-                        )}
-                    </div>
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={isSubmitting}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {isSubmitting ? (
-                            <FontAwesomeIcon icon={faSpinner} spin />
-                        ) : (
-                            <FontAwesomeIcon icon={faPlus} />
-                        )}
-                        Registrar tasa
-                    </button>
-                </form>
-            </div>
+                        >
+                            {submitError}
+                        </div>
+                    )}
+                    {submitSuccess && (
+                        <div
+                            style={{
+                                padding: '8px 12px',
+                                background: 'var(--success-light)',
+                                border: '1px solid var(--success)',
+                                borderRadius: 8,
+                                color: 'var(--success)',
+                                fontSize: 13,
+                                marginBottom: 12,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                            }}
+                        >
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                            Tasa registrada correctamente.
+                        </div>
+                    )}
 
-            {/* Historial */}
+                    <form
+                        onSubmit={(e) => {
+                            void handleSubmit(onSubmit)(e);
+                        }}
+                        style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}
+                    >
+                        <div style={{ flex: 1 }}>
+                            <input
+                                {...register('rate')}
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                placeholder="Ej. 42.50"
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 8,
+                                    fontSize: 14,
+                                    fontFamily: 'var(--font-mono)',
+                                    background: 'var(--bg-elevated)',
+                                    color: 'var(--text-primary)',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            {errors.rate && (
+                                <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>
+                                    {errors.rate.message}
+                                </p>
+                            )}
+                        </div>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isSubmitting}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {isSubmitting ? (
+                                <FontAwesomeIcon icon={faSpinner} spin />
+                            ) : (
+                                <FontAwesomeIcon icon={faPlus} />
+                            )}
+                            Registrar tasa
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* ── Historial ── */}
             <button
                 className="btn btn-secondary"
                 onClick={() => setShowHistory((v) => !v)}
@@ -1211,6 +1558,16 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                         }}
                                     >
                                         Tasa (Bs/$)
+                                    </th>
+                                    <th
+                                        style={{
+                                            padding: '10px 16px',
+                                            textAlign: 'left',
+                                            fontWeight: 600,
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        Origen
                                     </th>
                                     <th
                                         style={{
@@ -1278,6 +1635,30 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                                 </span>
                                             )}
                                         </td>
+                                        <td style={{ padding: '10px 16px' }}>
+                                            <span
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 4,
+                                                    padding: '2px 8px',
+                                                    borderRadius: 10,
+                                                    fontSize: 11,
+                                                    fontWeight: 600,
+                                                    textTransform: 'uppercase',
+                                                    background:
+                                                        er.source === 'bcv' ? '#dbeafe' : '#fef3c7',
+                                                    color:
+                                                        er.source === 'bcv' ? '#1d4ed8' : '#92400e',
+                                                }}
+                                            >
+                                                <FontAwesomeIcon
+                                                    icon={er.source === 'bcv' ? faGlobe : faUser}
+                                                    style={{ fontSize: 9 }}
+                                                />
+                                                {er.source === 'bcv' ? 'BCV' : 'Manual'}
+                                            </span>
+                                        </td>
                                         <td
                                             style={{
                                                 padding: '10px 16px',
@@ -1292,7 +1673,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                                 color: 'var(--text-primary)',
                                             }}
                                         >
-                                            {er.setByName}
+                                            {er.setByName || 'Sistema'}
                                         </td>
                                     </tr>
                                 ))}
