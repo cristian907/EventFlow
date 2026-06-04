@@ -6,7 +6,8 @@ import {
     OrderSummaryType,
     OrderDetailType,
     TicketSummaryType,
-    sumPaymentsInUSD,
+    sumPaymentsInDivisa,
+    BcvRateType,
 } from '@eventflow/shared';
 import {
     faPlus,
@@ -27,10 +28,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Resolver } from 'react-hook-form';
-import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
+import { bcvService } from '../services/bcvService';
 import { exchangeRateService } from '../services/exchangeRateService';
 import { paymentMethodService } from '../services/paymentMethodService';
 import { salesService } from '../services/salesService';
@@ -41,9 +43,6 @@ import { ticketTypeService } from '../services/ticketTypeService';
 const getApiError = (err: unknown): string =>
     (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
     'Ocurrió un error inesperado.';
-
-const fmtUSD = (v: number) =>
-    v.toLocaleString('es-VE', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
 
 const fmtVES = (v: number) =>
     `Bs. ${v.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -237,7 +236,10 @@ function OrderDetailModal({ order, onClose }: { order: OrderDetailType; onClose:
                                 <span>
                                     {item.quantity}× {item.ticketTypeName}
                                 </span>
-                                <span style={{ fontWeight: 600 }}>{fmtUSD(item.subtotal)}</span>
+                                <span style={{ fontWeight: 600 }}>
+                                    {order.currency === 'EUR' ? '€' : '$'}{' '}
+                                    {item.subtotal.toFixed(2)}
+                                </span>
                             </div>
                         ))}
                         <div
@@ -250,7 +252,8 @@ function OrderDetailModal({ order, onClose }: { order: OrderDetailType; onClose:
                         >
                             <span>Total</span>
                             <span style={{ color: 'var(--primary)' }}>
-                                {fmtUSD(order.totalAmount)}
+                                {order.currency === 'EUR' ? '€' : '$'}{' '}
+                                {order.totalAmount.toFixed(2)}
                             </span>
                         </div>
                     </section>
@@ -442,6 +445,7 @@ function NewSaleModal({
     const [ticketTypes, setTicketTypes] = useState<TicketTypeType[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodType[]>([]);
     const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+    const [bcvRates, setBcvRates] = useState<BcvRateType | null>(null);
     const [loadingData, setLoadingData] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -477,15 +481,17 @@ function NewSaleModal({
         async function loadFormData() {
             try {
                 setLoadingData(true);
-                const [ttResponse, pmList, rateResponse] = await Promise.all([
+                const [ttResponse, pmList, rateResponse, bcvRateResponse] = await Promise.all([
                     ticketTypeService.list(eventId, false),
                     paymentMethodService.list(eventId),
                     exchangeRateService.getCurrent(eventId),
+                    bcvService.getRate().catch(() => null),
                 ]);
                 const sellable = ttResponse.ticketTypes.filter(isSellable);
                 setTicketTypes(sellable);
                 setPaymentMethods(pmList.filter((pm) => pm.isActive));
                 setExchangeRate(rateResponse.current?.rate ?? null);
+                setBcvRates(bcvRateResponse);
             } catch (err) {
                 setLoadError(getApiError(err));
             } finally {
@@ -514,40 +520,62 @@ function NewSaleModal({
         };
     }, [eventId, successOrder]);
 
+    const { currentEvent } = useEvent();
+
+    const baseCurrency = currentEvent?.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
+    const baseSymbol = baseCurrency === 'EUR' ? '€' : '$';
+
+    const usdToVesRate = (() => {
+        if (currentEvent?.rateSource === 'CUSTOM') return exchangeRate || 0;
+        if (currentEvent?.rateSource === 'USDT_PARALELO')
+            return bcvRates?.usdtRate || exchangeRate || 0;
+        return bcvRates?.usdRate || exchangeRate || 0;
+    })();
+
+    const eurToVesRate = bcvRates?.eurRate || usdToVesRate * 1.08;
+
     const selectedTicketType = ticketTypes.find((tt) => tt.id === watchTicketTypeId);
 
-    const unitPriceUSD = selectedTicketType
-        ? selectedTicketType.currency === 'VES' && exchangeRate
-            ? selectedTicketType.price / exchangeRate
-            : selectedTicketType.price
-        : 0;
+    const subtotalUSD = selectedTicketType ? selectedTicketType.usdPrice * (watchQuantity || 0) : 0;
 
-    const subtotalUSD = unitPriceUSD * (watchQuantity || 0);
+    const enrichedWatchPayments = watchPayments.map((p) => {
+        const pm = paymentMethods.find((item) => item.id === p.paymentMethodId);
+        return {
+            amount: Number(p.amount) || 0,
+            currency: (pm ? pm.currency : 'USD') as 'USD' | 'VES' | 'EUR',
+        };
+    });
 
     const paidUSD =
         exchangeRate !== null
-            ? sumPaymentsInUSD(
-                  watchPayments.map((p) => ({
-                      amount: Number(p.amount) || 0,
-                      currency: (p.currency || 'USD') as 'USD' | 'VES' | 'EUR',
-                  })),
+            ? sumPaymentsInDivisa(
+                  enrichedWatchPayments,
+                  baseCurrency,
                   exchangeRate,
+                  eurToVesRate,
+                  usdToVesRate,
               )
             : 0;
 
-    const subtotalVES = subtotalUSD * (exchangeRate ?? 0);
-    const paidVES =
-        exchangeRate !== null
-            ? watchPayments.reduce((acc, p) => {
-                  const amt = Number(p.amount) || 0;
-                  const cur = (p.currency || 'USD') as 'USD' | 'VES' | 'EUR';
-                  return acc + (cur === 'VES' ? amt : amt * exchangeRate);
-              }, 0)
-            : 0;
-    const remainingVES = subtotalVES - paidVES;
+    const subtotalVES = selectedTicketType
+        ? selectedTicketType.currency === 'VES'
+            ? selectedTicketType.price * (watchQuantity || 0)
+            : subtotalUSD * (exchangeRate ?? 0)
+        : 0;
 
+    const paidVES = enrichedWatchPayments.reduce((acc, p) => {
+        if (p.currency === 'VES') return acc + p.amount;
+        if (p.currency === 'USD') return acc + p.amount * usdToVesRate;
+        if (p.currency === 'EUR') return acc + p.amount * eurToVesRate;
+        return acc;
+    }, 0);
+
+    const remainingVES = subtotalVES - paidVES;
     const remainingUSD = subtotalUSD - paidUSD;
     const canComplete = paidUSD >= subtotalUSD && subtotalUSD > 0;
+
+    const changeUSD = Math.max(0, paidUSD - subtotalUSD);
+    const changeVES = changeUSD * (exchangeRate ?? 0);
 
     async function handleSearchCustomer() {
         const idNumber = form.getValues('customer.idNumber');
@@ -569,7 +597,18 @@ function NewSaleModal({
         setSubmitting(true);
         setSubmitError(null);
         try {
-            const order = await salesService.createSale(eventId, data);
+            const enrichedPayments = data.payments.map((p) => {
+                const pm = paymentMethods.find((item) => item.id === p.paymentMethodId);
+                return {
+                    ...p,
+                    currency: pm ? pm.currency : 'USD',
+                };
+            });
+            const payload = {
+                ...data,
+                payments: enrichedPayments,
+            };
+            const order = await salesService.createSale(eventId, payload);
             setSuccessOrder(order);
         } catch (err) {
             setSubmitError(getApiError(err));
@@ -624,7 +663,8 @@ function NewSaleModal({
                     </h3>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
                         {successOrder.items[0]?.quantity}× {successOrder.items[0]?.ticketTypeName} —{' '}
-                        {fmtUSD(successOrder.totalAmount)}
+                        {successOrder.currency === 'EUR' ? '€' : '$'}{' '}
+                        {successOrder.totalAmount.toFixed(2)}
                     </p>
                     <div
                         style={{
@@ -927,10 +967,11 @@ function NewSaleModal({
                                             <option value="">Seleccionar...</option>
                                             {ticketTypes.map((tt) => (
                                                 <option key={tt.id} value={tt.id}>
-                                                    {tt.name} —{' '}
-                                                    {tt.currency === 'VES' ? 'Bs.' : '$'}
-                                                    {tt.price.toFixed(2)} ({tt.availableQuantity}{' '}
-                                                    disp.)
+                                                    {tt.name} — {baseSymbol}
+                                                    {tt.usdPrice.toFixed(2)}
+                                                    {tt.currency === 'VES' &&
+                                                        ` (~ Bs. ${tt.price.toFixed(2)})`}{' '}
+                                                    ({tt.availableQuantity} disp.)
                                                 </option>
                                             ))}
                                         </select>
@@ -1028,12 +1069,11 @@ function NewSaleModal({
                                                 }}
                                             >
                                                 <span style={{ color: 'var(--text-secondary)' }}>
-                                                    Precio unitario
+                                                    Precio unitario ({baseCurrency})
                                                 </span>
                                                 <span>
-                                                    {selectedTicketType.currency === 'VES'
-                                                        ? `Bs. ${selectedTicketType.price.toFixed(2)}`
-                                                        : fmtUSD(selectedTicketType.price)}
+                                                    {baseSymbol}{' '}
+                                                    {selectedTicketType.usdPrice.toFixed(2)}
                                                 </span>
                                             </div>
                                             {selectedTicketType.currency === 'VES' && (
@@ -1047,9 +1087,9 @@ function NewSaleModal({
                                                     <span
                                                         style={{ color: 'var(--text-secondary)' }}
                                                     >
-                                                        ≈ en USD
+                                                        ≈ en VES
                                                     </span>
-                                                    <span>{fmtUSD(unitPriceUSD)}</span>
+                                                    <span>{fmtVES(selectedTicketType.price)}</span>
                                                 </div>
                                             )}
                                             <div
@@ -1073,9 +1113,9 @@ function NewSaleModal({
                                                     fontWeight: 700,
                                                 }}
                                             >
-                                                <span>Subtotal (USD)</span>
+                                                <span>Subtotal ({baseCurrency})</span>
                                                 <span style={{ color: 'var(--primary)' }}>
-                                                    {fmtUSD(subtotalUSD)}
+                                                    {baseSymbol} {subtotalUSD.toFixed(2)}
                                                 </span>
                                             </div>
                                             <p
@@ -1085,7 +1125,7 @@ function NewSaleModal({
                                                     color: 'var(--text-secondary)',
                                                 }}
                                             >
-                                                Tasa: {exchangeRate} VES/USD
+                                                Tasa: {exchangeRate} VES/{baseCurrency}
                                             </p>
                                         </>
                                     ) : (
@@ -1211,6 +1251,45 @@ function NewSaleModal({
                                                 boxSizing: 'border-box',
                                             }}
                                         />
+                                        {field === 'customer.fullName' &&
+                                            form.formState.errors.customer?.fullName && (
+                                                <p
+                                                    style={{
+                                                        color: 'var(--danger)',
+                                                        fontSize: '0.8rem',
+                                                        margin: '0.25rem 0 0',
+                                                    }}
+                                                >
+                                                    {
+                                                        form.formState.errors.customer.fullName
+                                                            .message
+                                                    }
+                                                </p>
+                                            )}
+                                        {field === 'customer.phone' &&
+                                            form.formState.errors.customer?.phone && (
+                                                <p
+                                                    style={{
+                                                        color: 'var(--danger)',
+                                                        fontSize: '0.8rem',
+                                                        margin: '0.25rem 0 0',
+                                                    }}
+                                                >
+                                                    {form.formState.errors.customer.phone.message}
+                                                </p>
+                                            )}
+                                        {field === 'customer.email' &&
+                                            form.formState.errors.customer?.email && (
+                                                <p
+                                                    style={{
+                                                        color: 'var(--danger)',
+                                                        fontSize: '0.8rem',
+                                                        margin: '0.25rem 0 0',
+                                                    }}
+                                                >
+                                                    {form.formState.errors.customer.email.message}
+                                                </p>
+                                            )}
                                     </div>
                                 ))}
                             </div>
@@ -1236,13 +1315,13 @@ function NewSaleModal({
                                     {[
                                         {
                                             label: 'Total',
-                                            usd: fmtUSD(subtotalUSD),
+                                            usd: `${baseSymbol} ${subtotalUSD.toFixed(2)}`,
                                             ves: fmtVES(subtotalVES),
                                             color: 'var(--text-primary)',
                                         },
                                         {
                                             label: 'Pagado',
-                                            usd: fmtUSD(paidUSD),
+                                            usd: `${baseSymbol} ${paidUSD.toFixed(2)}`,
                                             ves: fmtVES(paidVES),
                                             color:
                                                 paidUSD >= subtotalUSD
@@ -1251,7 +1330,7 @@ function NewSaleModal({
                                         },
                                         {
                                             label: 'Restante',
-                                            usd: fmtUSD(Math.max(0, remainingUSD)),
+                                            usd: `${baseSymbol} ${Math.max(0, remainingUSD).toFixed(2)}`,
                                             ves: fmtVES(Math.max(0, remainingVES)),
                                             color:
                                                 remainingUSD <= 0
@@ -1294,55 +1373,101 @@ function NewSaleModal({
                                     ))}
                                 </div>
 
-                                {/* Payment entries */}
-                                {paymentFields.map((field, index) => (
+                                {changeUSD > 0 && (
                                     <div
-                                        key={field.id}
                                         style={{
-                                            border: '1px solid var(--border)',
+                                            background: 'rgba(16, 185, 129, 0.1)',
+                                            border: '1px solid var(--success)',
                                             borderRadius: 10,
-                                            padding: '1rem',
+                                            padding: '0.8rem 1.25rem',
                                             display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.75rem',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
                                         }}
                                     >
-                                        <div
+                                        <span
                                             style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
+                                                fontWeight: 600,
+                                                color: 'var(--success)',
+                                                fontSize: '0.9rem',
                                             }}
                                         >
-                                            <span
+                                            Vuelto a entregar:
+                                        </span>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <p
                                                 style={{
-                                                    fontWeight: 600,
-                                                    fontSize: '0.875rem',
-                                                    color: 'var(--text-secondary)',
+                                                    margin: 0,
+                                                    fontWeight: 700,
+                                                    color: 'var(--success)',
+                                                    fontSize: '1rem',
                                                 }}
                                             >
-                                                Pago {index + 1}
-                                            </span>
-                                            {paymentFields.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-ghost btn-sm"
-                                                    onClick={() => remove(index)}
-                                                    style={{ color: 'var(--danger)' }}
-                                                >
-                                                    <FontAwesomeIcon icon={faTrash} />
-                                                </button>
-                                            )}
+                                                {baseSymbol} {changeUSD.toFixed(2)}
+                                            </p>
+                                            <p
+                                                style={{
+                                                    margin: 0,
+                                                    fontWeight: 500,
+                                                    color: 'var(--text-secondary)',
+                                                    fontSize: '0.8rem',
+                                                }}
+                                            >
+                                                {fmtVES(changeVES)}
+                                            </p>
                                         </div>
+                                    </div>
+                                )}
 
+                                {/* Payment entries */}
+                                {paymentFields.map((field, index) => {
+                                    const selectedPmId = watchPayments[index]?.paymentMethodId;
+                                    const selectedPm = paymentMethods.find(
+                                        (pm) => pm.id === selectedPmId,
+                                    );
+                                    const pmCurrency = selectedPm ? selectedPm.currency : '';
+
+                                    return (
                                         <div
+                                            key={field.id}
                                             style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '1fr 1fr',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: 10,
+                                                padding: '1rem',
+                                                display: 'flex',
+                                                flexDirection: 'column',
                                                 gap: '0.75rem',
                                             }}
                                         >
-                                            <div>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontWeight: 600,
+                                                        fontSize: '0.875rem',
+                                                        color: 'var(--text-secondary)',
+                                                    }}
+                                                >
+                                                    Pago {index + 1}
+                                                </span>
+                                                {paymentFields.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-ghost btn-sm"
+                                                        onClick={() => remove(index)}
+                                                        style={{ color: 'var(--danger)' }}
+                                                    >
+                                                        <FontAwesomeIcon icon={faTrash} />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div style={{ marginBottom: '0.2rem' }}>
                                                 <label
                                                     style={{
                                                         display: 'block',
@@ -1364,125 +1489,103 @@ function NewSaleModal({
                                                         border: '1px solid var(--border)',
                                                         background: 'var(--bg-surface)',
                                                         fontSize: '0.875rem',
+                                                        boxSizing: 'border-box',
                                                     }}
                                                 >
                                                     <option value="">Seleccionar...</option>
                                                     {paymentMethods.map((pm) => (
                                                         <option key={pm.id} value={pm.id}>
-                                                            {pm.name}
+                                                            {pm.name} (
+                                                            {pm.currency === 'VES'
+                                                                ? 'Bs.'
+                                                                : pm.currency === 'EUR'
+                                                                  ? 'EUR'
+                                                                  : 'USD'}
+                                                            )
                                                         </option>
                                                     ))}
                                                 </select>
                                             </div>
 
-                                            <div>
-                                                <label
-                                                    style={{
-                                                        display: 'block',
-                                                        marginBottom: '0.3rem',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    Moneda
-                                                </label>
-                                                <Controller
-                                                    control={form.control}
-                                                    name={`payments.${index}.currency`}
-                                                    render={({ field: f }) => (
-                                                        <select
-                                                            {...f}
-                                                            style={{
-                                                                width: '100%',
-                                                                padding: '0.5rem 0.65rem',
-                                                                borderRadius: 8,
-                                                                border: '1px solid var(--border)',
-                                                                background: 'var(--bg-surface)',
-                                                                fontSize: '0.875rem',
-                                                            }}
-                                                        >
-                                                            <option value="USD">USD</option>
-                                                            <option value="VES">VES (Bs.)</option>
-                                                            <option value="EUR">EUR</option>
-                                                        </select>
-                                                    )}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '1fr 1fr',
-                                                gap: '0.75rem',
-                                            }}
-                                        >
-                                            <div>
-                                                <label
-                                                    style={{
-                                                        display: 'block',
-                                                        marginBottom: '0.3rem',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    Monto
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    {...form.register(`payments.${index}.amount`)}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.5rem 0.65rem',
-                                                        borderRadius: 8,
-                                                        border: '1px solid var(--border)',
-                                                        background: 'var(--bg-surface)',
-                                                        fontSize: '0.875rem',
-                                                        boxSizing: 'border-box',
-                                                    }}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label
-                                                    style={{
-                                                        display: 'block',
-                                                        marginBottom: '0.3rem',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    Referencia{' '}
-                                                    <span
+                                            <div
+                                                style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: '1fr 1fr',
+                                                    gap: '0.75rem',
+                                                }}
+                                            >
+                                                <div>
+                                                    <label
                                                         style={{
-                                                            color: 'var(--text-secondary)',
-                                                            fontWeight: 400,
+                                                            display: 'block',
+                                                            marginBottom: '0.3rem',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 600,
                                                         }}
                                                     >
-                                                        (opcional)
-                                                    </span>
-                                                </label>
-                                                <input
-                                                    {...form.register(
-                                                        `payments.${index}.reference`,
-                                                    )}
-                                                    placeholder=""
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.5rem 0.65rem',
-                                                        borderRadius: 8,
-                                                        border: '1px solid var(--border)',
-                                                        background: 'var(--bg-surface)',
-                                                        fontSize: '0.875rem',
-                                                        boxSizing: 'border-box',
-                                                    }}
-                                                />
+                                                        Monto{' '}
+                                                        {pmCurrency
+                                                            ? `(${pmCurrency === 'VES' ? 'Bs.' : pmCurrency})`
+                                                            : ''}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        {...form.register(
+                                                            `payments.${index}.amount`,
+                                                        )}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '0.5rem 0.65rem',
+                                                            borderRadius: 8,
+                                                            border: '1px solid var(--border)',
+                                                            background: 'var(--bg-surface)',
+                                                            fontSize: '0.875rem',
+                                                            boxSizing: 'border-box',
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label
+                                                        style={{
+                                                            display: 'block',
+                                                            marginBottom: '0.3rem',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        Referencia{' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'var(--text-secondary)',
+                                                                fontWeight: 400,
+                                                            }}
+                                                        >
+                                                            (opcional)
+                                                        </span>
+                                                    </label>
+                                                    <input
+                                                        {...form.register(
+                                                            `payments.${index}.reference`,
+                                                        )}
+                                                        placeholder=""
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '0.5rem 0.65rem',
+                                                            borderRadius: 8,
+                                                            border: '1px solid var(--border)',
+                                                            background: 'var(--bg-surface)',
+                                                            fontSize: '0.875rem',
+                                                            boxSizing: 'border-box',
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
 
                                 <button
                                     type="button"
@@ -1564,6 +1667,8 @@ function NewSaleModal({
                                                 const valid = await form.trigger([
                                                     'customer.idNumber',
                                                     'customer.fullName',
+                                                    'customer.phone',
+                                                    'customer.email',
                                                 ]);
                                                 if (!valid) return;
                                             }
@@ -1930,7 +2035,8 @@ export default function SalesPage() {
                                                 whiteSpace: 'nowrap',
                                             }}
                                         >
-                                            {fmtUSD(order.totalAmount)}
+                                            {order.currency === 'EUR' ? '€' : '$'}{' '}
+                                            {order.totalAmount.toFixed(2)}
                                         </td>
                                         <td
                                             style={{

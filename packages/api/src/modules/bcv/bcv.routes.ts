@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import authMiddleware from '../../infrastructure/http/authMiddleware';
+import authMiddleware, { authorizeAdmin } from '../../infrastructure/http/authMiddleware';
 
 import BcvController from './bcv.controller';
 
@@ -11,7 +11,7 @@ export function createBcvRouter(bcvController: BcvController): Router {
     router.use(authMiddleware);
 
     router.get('/', bcvController.getRate);
-    router.post('/sync', bcvController.syncRate);
+    router.post('/sync', authorizeAdmin, bcvController.syncRate);
 
     return router;
 }

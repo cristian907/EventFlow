@@ -10,8 +10,9 @@ export default class AccessController {
     scan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const store = requestContext.getStore();
+            if (!store) throw new Error('Missing request context');
             const eventId = String(req.params.eventId);
-            const result = await this.accessService.scanQr(eventId, req.body.qrData, store!.userId);
+            const result = await this.accessService.scanQr(eventId, req.body.qrData, store.userId);
             res.json(result);
         } catch (error) {
             next(error);
@@ -36,9 +37,10 @@ export default class AccessController {
     manualUse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const store = requestContext.getStore();
+            if (!store) throw new Error('Missing request context');
             const eventId = String(req.params.eventId);
             const ticketId = String(req.params.ticketId);
-            const result = await this.accessService.manualUse(eventId, ticketId, store!.userId);
+            const result = await this.accessService.manualUse(eventId, ticketId, store.userId);
             res.json(result);
         } catch (error) {
             next(error);

@@ -59,12 +59,14 @@ export const providers = {
         repositories.bcvRate,
         repositories.event,
         repositories.exchangeRate,
+        repositories.ticketType,
         process.env.BCV_CACHE_TTL_MS,
     ),
 };
 
-// Initialize providers
-providers.bcv.init().catch(console.error);
+export async function initializeProviders(): Promise<void> {
+    await providers.bcv.init();
+}
 
 export const modules = {
     auth: createAuthModule(repositories.user),
@@ -73,6 +75,7 @@ export const modules = {
     'events/:eventId/ticket-types': createTicketTypesModule(
         repositories.ticketType,
         repositories.event,
+        repositories.exchangeRate,
     ),
     'events/:eventId/staff': createStaffModule(
         repositories.eventMember,
@@ -94,6 +97,8 @@ export const modules = {
         repositories.ticketType,
         repositories.exchangeRate,
         ticketsService,
+        repositories.bcvRate,
+        repositories.event,
     ),
     'events/:eventId': ticketsRouter,
     'events/:eventId/access': createAccessModule(

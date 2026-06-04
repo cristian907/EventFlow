@@ -16,7 +16,7 @@ export default class ExchangeRatesService {
         eventId: string,
         data: ExchangeRateToCreateType,
         setBy?: string,
-        source: 'manual' | 'bcv' = 'manual',
+        source: 'manual' | 'bcv' | 'paralelo' = 'manual',
     ): Promise<ExchangeRateType> {
         const event = await this.eventRepository.findById(eventId);
         if (!event) throw new EventNotFoundError(eventId);

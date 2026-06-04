@@ -4,7 +4,7 @@ export default interface IExchangeRateRepository {
     create(data: {
         eventId: string;
         rate: number;
-        source: 'manual' | 'bcv';
+        source: 'manual' | 'bcv' | 'paralelo';
         setBy?: string;
         effectiveAt: Date;
     }): Promise<ExchangeRate>;

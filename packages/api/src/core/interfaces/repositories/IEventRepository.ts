@@ -13,6 +13,7 @@ export default interface IEventRepository {
         address: string;
         maxCapacity: number;
         imageUrl: string;
+        rateSource?: string;
         autoSyncBcv?: boolean;
     }): Promise<Event>;
 
@@ -39,6 +40,7 @@ export default interface IEventRepository {
             address?: string;
             maxCapacity?: number;
             imageUrl?: string;
+            rateSource?: string;
             autoSyncBcv?: boolean;
         },
     ): Promise<Event>;
@@ -46,4 +48,6 @@ export default interface IEventRepository {
     getMemberRole(eventId: string, userId: string): Promise<string | null>;
 
     createMember(eventId: string, userId: string, role: string): Promise<void>;
+
+    findActiveAutoSyncEvents(): Promise<Event[]>;
 }

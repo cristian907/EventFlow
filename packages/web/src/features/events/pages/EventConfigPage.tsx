@@ -26,10 +26,9 @@ import {
     faSave,
     faHistory,
     faSync,
-    faToggleOn,
-    faToggleOff,
     faGlobe,
     faUser,
+    faCoins,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -127,6 +126,40 @@ function erReducer(state: ERState, action: ERAction): ERState {
                 isHistoryLoading: false,
                 error: action.message,
             };
+    }
+}
+
+/* ─── BCV rate state ─── */
+type RateSource = 'USD_BCV' | 'EUR_BCV' | 'USDT_PARALELO' | 'CUSTOM';
+
+interface BcvState {
+    rate: BcvRateType | null;
+    isLoading: boolean;
+    isSyncing: boolean;
+    error: string | null;
+}
+type BcvAction =
+    | { type: 'FETCH_START' }
+    | { type: 'FETCH_SUCCESS'; rate: BcvRateType }
+    | { type: 'FETCH_ERROR'; message: string }
+    | { type: 'SYNC_START' }
+    | { type: 'SYNC_SUCCESS'; rate: BcvRateType }
+    | { type: 'SYNC_ERROR'; message: string };
+
+function bcvReducer(state: BcvState, action: BcvAction): BcvState {
+    switch (action.type) {
+        case 'FETCH_START':
+            return { ...state, isLoading: true };
+        case 'FETCH_SUCCESS':
+            return { ...state, rate: action.rate, isLoading: false };
+        case 'FETCH_ERROR':
+            return { ...state, error: action.message, isLoading: false };
+        case 'SYNC_START':
+            return { ...state, isSyncing: true, error: null };
+        case 'SYNC_SUCCESS':
+            return { ...state, rate: action.rate, isSyncing: false };
+        case 'SYNC_ERROR':
+            return { ...state, error: action.message, isSyncing: false };
     }
 }
 
@@ -913,6 +946,7 @@ function PaymentMethodsTab({ eventId }: { eventId: string }) {
 /* ═══════════════════════════════════════════ EXCHANGE RATE TAB ═══════════════════════════════════════════ */
 function ExchangeRateTab({ eventId }: { eventId: string }) {
     const { currentEvent, setEventContext, eventRole } = useEvent();
+    const autoSyncEnabled = currentEvent?.rateSource !== 'CUSTOM';
     const [state, dispatch] = useReducer(erReducer, {
         current: null,
         history: [],
@@ -926,11 +960,23 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
     // BCV state
-    const [bcvRate, setBcvRate] = useState<BcvRateType | null>(null);
-    const [isBcvLoading, setIsBcvLoading] = useState(true);
-    const [isBcvSyncing, setIsBcvSyncing] = useState(false);
-    const [bcvError, setBcvError] = useState<string | null>(null);
+    const [bcvState, bcvDispatch] = useReducer(bcvReducer, {
+        rate: null,
+        isLoading: true,
+        isSyncing: false,
+        error: null,
+    });
     const [isTogglingAutoSync, setIsTogglingAutoSync] = useState(false);
+    const [selectedRateSource, setSelectedRateSource] = useState<RateSource>(
+        (currentEvent?.rateSource as RateSource) ?? 'CUSTOM',
+    );
+
+    // Adjust selectedRateSource when currentEvent changes (render-time sync)
+    const [prevEventId, setPrevEventId] = useState(currentEvent?.id);
+    if (currentEvent && currentEvent.id !== prevEventId) {
+        setPrevEventId(currentEvent.id);
+        setSelectedRateSource((currentEvent.rateSource as RateSource) ?? 'CUSTOM');
+    }
 
     const {
         register,
@@ -943,7 +989,6 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     });
 
     const fetchCurrent = useCallback(async () => {
-        dispatch({ type: 'LOADING' });
         try {
             const { current } = await exchangeRateService.getCurrent(eventId);
             dispatch({ type: 'CURRENT_SUCCESS', current });
@@ -963,21 +1008,17 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     }, [eventId]);
 
     const fetchBcvRate = useCallback(async () => {
-        setIsBcvLoading(true);
-        setBcvError(null);
         try {
+            bcvDispatch({ type: 'FETCH_START' });
             const rate = await bcvService.getRate();
-            setBcvRate(rate);
+            bcvDispatch({ type: 'FETCH_SUCCESS', rate });
         } catch (err) {
-            setBcvError(getApiErrorMessage(err));
-        } finally {
-            setIsBcvLoading(false);
+            bcvDispatch({ type: 'FETCH_ERROR', message: getApiErrorMessage(err) });
         }
     }, []);
 
     useEffect(() => {
         void fetchCurrent();
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchBcvRate();
     }, [fetchCurrent, fetchBcvRate]);
 
@@ -986,37 +1027,33 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     }, [showHistory, fetchHistory]);
 
     const handleBcvSync = async () => {
-        setIsBcvSyncing(true);
-        setBcvError(null);
+        bcvDispatch({ type: 'SYNC_START' });
         try {
             const rate = await bcvService.syncRate();
-            setBcvRate(rate);
+            bcvDispatch({ type: 'SYNC_SUCCESS', rate });
             // Refresh event exchange rate in case auto-sync kicked in
             void fetchCurrent();
             window.dispatchEvent(new Event('exchangeRateChanged'));
             if (showHistory) void fetchHistory();
         } catch (err) {
-            setBcvError(getApiErrorMessage(err));
-        } finally {
-            setIsBcvSyncing(false);
+            bcvDispatch({ type: 'SYNC_ERROR', message: getApiErrorMessage(err) });
         }
     };
 
-    const handleToggleAutoSync = async () => {
+    const handleSaveRateSource = async () => {
         if (!currentEvent) return;
-        const willBeAutoSync = !currentEvent.autoSyncBcv;
         setIsTogglingAutoSync(true);
         try {
             const updated = await eventService.updateEvent(eventId, {
-                autoSyncBcv: willBeAutoSync,
+                rateSource: selectedRateSource,
             });
             setEventContext(updated, eventRole);
 
-            if (willBeAutoSync) {
+            if (selectedRateSource !== 'CUSTOM') {
                 await handleBcvSync();
             }
         } catch (err) {
-            setBcvError(getApiErrorMessage(err));
+            bcvDispatch({ type: 'SYNC_ERROR', message: getApiErrorMessage(err) });
         } finally {
             setIsTogglingAutoSync(false);
         }
@@ -1059,10 +1096,8 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
         return `hace ${hours}h ${mins % 60}min`;
     };
 
-    const autoSyncEnabled = currentEvent?.autoSyncBcv ?? false;
-
     return (
-        <div style={{ maxWidth: 700 }}>
+        <div style={{ maxWidth: 750 }}>
             {/* ── BCV Global Rate Card ── */}
             <div
                 style={{
@@ -1084,6 +1119,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                         height: 120,
                         borderRadius: '50%',
                         background: 'rgba(99, 102, 241, 0.15)',
+                        pointerEvents: 'none',
                     }}
                 />
                 <div
@@ -1106,7 +1142,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             }}
                         >
                             <FontAwesomeIcon icon={faGlobe} style={{ marginRight: 6 }} />
-                            Tasa BCV Oficial
+                            Tasas de Referencia Nacional
                         </p>
                     </div>
                     <button
@@ -1114,7 +1150,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                         onClick={() => {
                             void handleBcvSync();
                         }}
-                        disabled={isBcvSyncing}
+                        disabled={bcvState.isSyncing}
                         style={{
                             background: 'rgba(99, 102, 241, 0.2)',
                             color: '#a5b4fc',
@@ -1128,32 +1164,36 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             cursor: 'pointer',
                         }}
                     >
-                        <FontAwesomeIcon icon={faSync} spin={isBcvSyncing} />
+                        <FontAwesomeIcon icon={faSync} spin={bcvState.isSyncing} />
                         Sincronizar
                     </button>
                 </div>
 
-                {isBcvLoading ? (
+                {bcvState.isLoading ? (
                     <FontAwesomeIcon icon={faSpinner} spin style={{ color: '#a5b4fc' }} />
-                ) : bcvRate ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                ) : bcvState.rate ? (
+                    <div
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}
+                    >
                         <div>
-                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>USD</p>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>
+                                USD (BCV)
+                            </p>
                             <p
                                 style={{
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     fontWeight: 700,
                                     fontFamily: 'var(--font-mono)',
                                     margin: 0,
                                 }}
                             >
-                                {bcvRate.usdRate.toLocaleString('es-VE', {
+                                {bcvState.rate.usdRate.toLocaleString('es-VE', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 4,
                                 })}
                                 <span
                                     style={{
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         fontWeight: 400,
                                         color: '#94a3b8',
                                         marginLeft: 4,
@@ -1164,22 +1204,54 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             </p>
                         </div>
                         <div>
-                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>EUR</p>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>
+                                EUR (BCV)
+                            </p>
                             <p
                                 style={{
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     fontWeight: 700,
                                     fontFamily: 'var(--font-mono)',
                                     margin: 0,
                                 }}
                             >
-                                {bcvRate.eurRate.toLocaleString('es-VE', {
+                                {bcvState.rate.eurRate.toLocaleString('es-VE', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 4,
                                 })}
                                 <span
                                     style={{
-                                        fontSize: 12,
+                                        fontSize: 11,
+                                        fontWeight: 400,
+                                        color: '#94a3b8',
+                                        marginLeft: 4,
+                                    }}
+                                >
+                                    Bs
+                                </span>
+                            </p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 2px' }}>
+                                USDt (Paralelo)
+                            </p>
+                            <p
+                                style={{
+                                    fontSize: 20,
+                                    fontWeight: 700,
+                                    fontFamily: 'var(--font-mono)',
+                                    margin: 0,
+                                }}
+                            >
+                                {bcvState.rate.usdtRate
+                                    ? bcvState.rate.usdtRate.toLocaleString('es-VE', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 4,
+                                      })
+                                    : '—'}
+                                <span
+                                    style={{
+                                        fontSize: 11,
                                         fontWeight: 400,
                                         color: '#94a3b8',
                                         marginLeft: 4,
@@ -1195,26 +1267,29 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             </p>
                             <p
                                 style={{
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     fontWeight: 700,
                                     fontFamily: 'var(--font-mono)',
                                     margin: 0,
                                 }}
                             >
-                                {getEurUsdRate(bcvRate.eurRate, bcvRate.usdRate).toLocaleString(
-                                    'es-VE',
-                                    { minimumFractionDigits: 4, maximumFractionDigits: 4 },
-                                )}
+                                {getEurUsdRate(
+                                    bcvState.rate.eurRate,
+                                    bcvState.rate.usdRate,
+                                ).toLocaleString('es-VE', {
+                                    minimumFractionDigits: 4,
+                                    maximumFractionDigits: 4,
+                                })}
                             </p>
                         </div>
                     </div>
                 ) : (
                     <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
-                        {bcvError ?? 'No se pudo obtener la tasa del BCV.'}
+                        {bcvState.error ?? 'No se pudo obtener las tasas de cambio.'}
                     </p>
                 )}
 
-                {bcvRate && (
+                {bcvState.rate && (
                     <p
                         style={{
                             fontSize: 11,
@@ -1223,24 +1298,25 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             margin: '10px 0 0',
                         }}
                     >
-                        {bcvRate.isStale ? '⚠️ Dato antiguo — ' : '✓ '}
-                        Actualizado {formatAge(bcvRate.ageMs)}
-                        {bcvRate.valueDate && ` · Fecha valor: ${formatDate(bcvRate.valueDate)}`}
+                        {bcvState.rate.isStale ? '⚠️ Dato antiguo — ' : '✓ '}
+                        Actualizado {formatAge(bcvState.rate.ageMs)}
+                        {bcvState.rate.valueDate &&
+                            ` · Fecha valor: ${formatDate(bcvState.rate.valueDate)}`}
                     </p>
                 )}
-                {bcvError && !bcvRate && (
+                {bcvState.error && !bcvState.rate && (
                     <p style={{ fontSize: 12, color: '#f87171', marginTop: 8 }}>
                         <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: 6 }} />
-                        {bcvError}
+                        {bcvState.error}
                     </p>
                 )}
             </div>
 
-            {/* ── Auto-Sync Toggle ── */}
+            {/* ── Auto-Sync Selector ── */}
             <div
                 style={{
                     background: 'var(--bg-elevated)',
-                    border: `1px solid ${autoSyncEnabled ? 'var(--primary)' : 'var(--border)'}`,
+                    border: `1px solid ${currentEvent?.rateSource !== 'CUSTOM' ? 'var(--primary)' : 'var(--border)'}`,
                     borderRadius: 12,
                     padding: '16px 22px',
                     marginBottom: 20,
@@ -1250,7 +1326,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                     transition: 'border-color 0.2s',
                 }}
             >
-                <div>
+                <div style={{ flex: 1, marginRight: 16 }}>
                     <p
                         style={{
                             fontSize: 14,
@@ -1259,38 +1335,85 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                             margin: '0 0 2px',
                         }}
                     >
-                        Sincronización automática con BCV
+                        Sincronización automática de tasa
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
-                        {autoSyncEnabled
-                            ? 'La tasa del evento se actualiza automáticamente con el BCV.'
+                        {currentEvent?.rateSource !== 'CUSTOM'
+                            ? `La tasa se sincroniza automáticamente usando: ${
+                                  currentEvent?.rateSource === 'USD_BCV'
+                                      ? 'USD (BCV)'
+                                      : currentEvent?.rateSource === 'EUR_BCV'
+                                        ? 'EUR (BCV)'
+                                        : 'USDt (Paralelo)'
+                              }`
                             : 'La tasa se gestiona manualmente.'}
                     </p>
                 </div>
-                <button
-                    onClick={() => {
-                        void handleToggleAutoSync();
-                    }}
-                    disabled={isTogglingAutoSync}
-                    className="btn"
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 4,
-                        fontSize: 28,
-                        color: autoSyncEnabled ? 'var(--primary)' : 'var(--text-secondary)',
-                        transition: 'color 0.2s',
-                        lineHeight: 1,
-                    }}
-                    title={autoSyncEnabled ? 'Desactivar auto-sync' : 'Activar auto-sync'}
-                >
-                    {isTogglingAutoSync ? (
-                        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: 22 }} />
-                    ) : (
-                        <FontAwesomeIcon icon={autoSyncEnabled ? faToggleOn : faToggleOff} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <select
+                        value={selectedRateSource}
+                        onChange={(e) => {
+                            setSelectedRateSource(
+                                e.target.value as
+                                    | 'USD_BCV'
+                                    | 'EUR_BCV'
+                                    | 'USDT_PARALELO'
+                                    | 'CUSTOM',
+                            );
+                        }}
+                        disabled={isTogglingAutoSync}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-surface)',
+                            color: 'var(--text-primary)',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <option value="CUSTOM">Manual (Custom)</option>
+                        <option value="USD_BCV">USD (BCV Oficial)</option>
+                        <option value="EUR_BCV">EUR (BCV Oficial)</option>
+                        <option value="USDT_PARALELO">USDt (Dólar Paralelo)</option>
+                    </select>
+                    {selectedRateSource !== currentEvent?.rateSource && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                void handleSaveRateSource();
+                            }}
+                            disabled={isTogglingAutoSync}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: 8,
+                                fontSize: 14,
+                                fontWeight: 500,
+                                background: 'var(--primary)',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                            }}
+                        >
+                            {isTogglingAutoSync ? (
+                                <>
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                    Guardando...
+                                </>
+                            ) : (
+                                <>
+                                    <FontAwesomeIcon icon={faSave} />
+                                    Guardar
+                                </>
+                            )}
+                        </button>
                     )}
-                </button>
+                </div>
             </div>
 
             {/* ── Tasa vigente del evento ── */}
@@ -1341,7 +1464,7 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                     color: 'var(--text-secondary)',
                                 }}
                             >
-                                Bs / $
+                                {currentEvent?.rateSource === 'EUR_BCV' ? 'Bs / €' : 'Bs / $'}
                             </span>
                         </p>
                         <p
@@ -1373,15 +1496,34 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                     fontWeight: 600,
                                     textTransform: 'uppercase',
                                     background:
-                                        state.current.source === 'bcv' ? '#dbeafe' : '#fef3c7',
-                                    color: state.current.source === 'bcv' ? '#1d4ed8' : '#92400e',
+                                        state.current.source === 'manual'
+                                            ? '#fef3c7'
+                                            : state.current.source === 'paralelo'
+                                              ? '#dcfce7'
+                                              : '#dbeafe',
+                                    color:
+                                        state.current.source === 'manual'
+                                            ? '#92400e'
+                                            : state.current.source === 'paralelo'
+                                              ? '#15803d'
+                                              : '#1d4ed8',
                                 }}
                             >
                                 <FontAwesomeIcon
-                                    icon={state.current.source === 'bcv' ? faGlobe : faUser}
+                                    icon={
+                                        state.current.source === 'manual'
+                                            ? faUser
+                                            : state.current.source === 'paralelo'
+                                              ? faCoins
+                                              : faGlobe
+                                    }
                                     style={{ fontSize: 9 }}
                                 />
-                                {state.current.source === 'bcv' ? 'BCV' : 'Manual'}
+                                {state.current.source === 'manual'
+                                    ? 'Manual'
+                                    : state.current.source === 'paralelo'
+                                      ? 'Paralelo'
+                                      : 'BCV'}
                             </span>
                         </p>
                     </>
@@ -1647,16 +1789,34 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
                                                     fontWeight: 600,
                                                     textTransform: 'uppercase',
                                                     background:
-                                                        er.source === 'bcv' ? '#dbeafe' : '#fef3c7',
+                                                        er.source === 'manual'
+                                                            ? '#fef3c7'
+                                                            : er.source === 'paralelo'
+                                                              ? '#dcfce7'
+                                                              : '#dbeafe',
                                                     color:
-                                                        er.source === 'bcv' ? '#1d4ed8' : '#92400e',
+                                                        er.source === 'manual'
+                                                            ? '#92400e'
+                                                            : er.source === 'paralelo'
+                                                              ? '#15803d'
+                                                              : '#1d4ed8',
                                                 }}
                                             >
                                                 <FontAwesomeIcon
-                                                    icon={er.source === 'bcv' ? faGlobe : faUser}
+                                                    icon={
+                                                        er.source === 'manual'
+                                                            ? faUser
+                                                            : er.source === 'paralelo'
+                                                              ? faCoins
+                                                              : faGlobe
+                                                    }
                                                     style={{ fontSize: 9 }}
                                                 />
-                                                {er.source === 'bcv' ? 'BCV' : 'Manual'}
+                                                {er.source === 'manual'
+                                                    ? 'Manual'
+                                                    : er.source === 'paralelo'
+                                                      ? 'Paralelo'
+                                                      : 'BCV'}
                                             </span>
                                         </td>
                                         <td

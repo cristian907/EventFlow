@@ -4,7 +4,7 @@ export interface ExchangeRateType {
     id: string;
     eventId: string;
     rate: number;
-    source: 'manual' | 'bcv';
+    source: 'manual' | 'bcv' | 'paralelo';
     setBy?: string;
     setByName?: string;
     effectiveAt: string;

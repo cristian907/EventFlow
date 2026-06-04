@@ -1,8 +1,8 @@
 import BcvRate from '../../core/entities/BcvRate';
-import { EventStatus } from '../../core/entities/Event';
 import IBcvRateRepository from '../../core/interfaces/repositories/IBcvRateRepository';
 import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import IExchangeRateRepository from '../../core/interfaces/repositories/IExchangeRateRepository';
+import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
 
 import { scrapeBcvRates } from './scraper';
 
@@ -15,9 +15,11 @@ export class BcvProvider {
         private bcvRateRepository: IBcvRateRepository,
         private eventRepository: IEventRepository,
         private exchangeRateRepository: IExchangeRateRepository,
+        private ticketTypeRepository: ITicketTypeRepository,
         ttlMsStr?: string,
     ) {
-        this.ttlMs = ttlMsStr ? parseInt(ttlMsStr, 10) : 1000 * 60 * 60; // Default 1 hour
+        const parsedTtl = ttlMsStr ? Number(ttlMsStr) : NaN;
+        this.ttlMs = Number.isFinite(parsedTtl) ? parsedTtl : 1000 * 60 * 60; // Default 1 hour
     }
 
     public async init(): Promise<void> {
@@ -57,8 +59,11 @@ export class BcvProvider {
 
     public async refresh(): Promise<BcvRate> {
         if (this.isRefreshing) {
+            while (this.isRefreshing) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
             if (this.currentRate) return this.currentRate;
-            throw new Error('Refresh already in progress and no current rate exists.');
+            throw new Error('Refresh completed, but no current rate exists.');
         }
 
         this.isRefreshing = true;
@@ -70,14 +75,15 @@ export class BcvProvider {
             const newRate = await this.bcvRateRepository.create({
                 usdRate: scraped.usdRate,
                 eurRate: scraped.eurRate,
+                usdtRate: scraped.usdtRate,
                 valueDate: scraped.valueDate,
                 scrapedAt: now,
             });
 
             this.currentRate = newRate;
 
-            // Trigger auto-sync for events. The method internally skips events that already have the correct rate & source.
-            await this.triggerAutoSync(scraped.usdRate);
+            // Trigger auto-sync for events.
+            await this.triggerAutoSync(newRate);
 
             return newRate;
         } catch (error) {
@@ -91,37 +97,63 @@ export class BcvProvider {
         }
     }
 
-    private async triggerAutoSync(newUsdRate: number): Promise<void> {
+    private async triggerAutoSync(newRate: BcvRate): Promise<void> {
         try {
-            // Find all events with autoSyncBcv = true. We'll do this in batches if needed,
-            // but for now, we can fetch all Active and Draft events
-            // In a real scenario, a dedicated query to get autoSync events would be better.
-            const { events } = await this.eventRepository.findAndCount({
-                page: 1,
-                limit: 1000,
-            });
-
-            const autoSyncEvents = events.filter(
-                (e) => e.autoSyncBcv && e.status !== EventStatus.Cancelled,
-            );
+            const autoSyncEvents = await this.eventRepository.findActiveAutoSyncEvents();
 
             for (const event of autoSyncEvents) {
+                let targetRate: number | null = null;
+                if (event.rateSource === 'USD_BCV') {
+                    targetRate = newRate.usdRate;
+                } else if (event.rateSource === 'EUR_BCV') {
+                    targetRate = newRate.eurRate;
+                } else if (event.rateSource === 'USDT_PARALELO') {
+                    targetRate = newRate.usdtRate || newRate.usdRate;
+                }
+
+                if (targetRate === null) continue;
+
+                const targetSource = event.rateSource === 'USDT_PARALELO' ? 'paralelo' : 'bcv';
                 const currentExchangeRate = await this.exchangeRateRepository.findCurrentByEventId(
                     event.id,
                 );
 
-                // Only insert if it differs from current event rate or if the source is not bcv
-                if (
+                // Only insert if it differs from current event rate or if the source differs
+                const currentRateNum = currentExchangeRate
+                    ? Number(currentExchangeRate.rate)
+                    : null;
+                const hasDiff =
                     !currentExchangeRate ||
-                    currentExchangeRate.rate !== newUsdRate ||
-                    currentExchangeRate.source !== 'bcv'
-                ) {
-                    await this.exchangeRateRepository.create({
-                        eventId: event.id,
-                        rate: newUsdRate,
-                        source: 'bcv',
-                        effectiveAt: new Date(),
-                    });
+                    currentRateNum !== targetRate ||
+                    currentExchangeRate.source !== targetSource;
+
+                const ticketTypes = await this.ticketTypeRepository.findByEventId(event.id, true);
+                let ticketsNeedUpdate = false;
+                for (const tt of ticketTypes) {
+                    const expectedPrice = Number((tt.usdPrice * targetRate).toFixed(2));
+                    if (tt.currency !== 'VES' || tt.price !== expectedPrice) {
+                        ticketsNeedUpdate = true;
+                        break;
+                    }
+                }
+
+                if (hasDiff || ticketsNeedUpdate) {
+                    if (hasDiff) {
+                        await this.exchangeRateRepository.create({
+                            eventId: event.id,
+                            rate: targetRate,
+                            source: targetSource,
+                            effectiveAt: new Date(),
+                        });
+                    }
+
+                    for (const tt of ticketTypes) {
+                        const newPrice = Number((tt.usdPrice * targetRate).toFixed(2));
+                        await this.ticketTypeRepository.update(tt.id, {
+                            price: newPrice,
+                            currency: 'VES',
+                        });
+                    }
                 }
             }
         } catch (error) {

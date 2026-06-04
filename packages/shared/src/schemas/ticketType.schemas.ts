@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ── Currency enum ──
-export const CurrencyEnum = z.enum(['USD', 'VES']);
+export const CurrencyEnum = z.enum(['USD', 'VES', 'EUR']);
 
 // ── Helpers ──
 const isValidOptionalDate = (val: string): boolean => {

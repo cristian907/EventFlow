@@ -4,6 +4,7 @@ export default interface IBcvRateRepository {
     create(data: {
         usdRate: number;
         eurRate: number;
+        usdtRate: number | null;
         valueDate: Date | null;
         scrapedAt: Date;
     }): Promise<BcvRate>;

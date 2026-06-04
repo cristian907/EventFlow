@@ -19,6 +19,7 @@ export interface EventType {
     maxCapacity: number;
     status: EventStatus;
     autoSyncBcv: boolean;
+    rateSource: 'USD_BCV' | 'EUR_BCV' | 'USDT_PARALELO' | 'CUSTOM';
     createdAt: Date | string;
     updatedAt: Date | string;
 }

@@ -4,18 +4,21 @@ import { Agent, fetch } from 'undici';
 export interface ScrapedRates {
     usdRate: number;
     eurRate: number;
+    usdtRate: number | null;
     valueDate: Date | null;
 }
 
 /**
- * Scrapes bcv.org.ve for the current USD and EUR exchange rates.
+ * Scrapes bcv.org.ve for the current USD and EUR exchange rates,
+ * and fetches the parallel rate from DolarApi.
  */
 export async function scrapeBcvRates(): Promise<ScrapedRates> {
     const bcvUrl = process.env.BCV_URL || 'https://www.bcv.org.ve';
+    const allowInsecureTls = process.env.BCV_INSECURE_TLS === 'true';
 
-    // To prevent SSL errors as BCV site often has certificate issues
+    // Allow opting into insecure TLS only when explicitly configured (e.g. for broken upstream certs).
     const dispatcher = new Agent({
-        connect: { rejectUnauthorized: false },
+        connect: { rejectUnauthorized: !allowInsecureTls },
     });
 
     const response = await fetch(bcvUrl, { dispatcher });
@@ -48,9 +51,26 @@ export async function scrapeBcvRates(): Promise<ScrapedRates> {
         }
     }
 
+    let usdtRate: number | null = null;
+    try {
+        const dResponse = await fetch('https://ve.dolarapi.com/v1/dolares/paralelo', {
+            dispatcher,
+        });
+        if (dResponse.ok) {
+            const data = (await dResponse.json()) as { promedio?: number; venta?: number };
+            const fetchedRate = data.promedio || data.venta;
+            if (fetchedRate && !isNaN(fetchedRate)) {
+                usdtRate = fetchedRate;
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch parallel dollar rate from DolarApi:', e);
+    }
+
     return {
         usdRate,
         eurRate,
+        usdtRate,
         valueDate,
     };
 }

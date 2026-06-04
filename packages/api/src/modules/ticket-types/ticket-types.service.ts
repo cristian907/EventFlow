@@ -8,6 +8,7 @@ import {
     InvalidSaleWindowError,
 } from '../../core/errors/BusinessErrors';
 import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
+import IExchangeRateRepository from '../../core/interfaces/repositories/IExchangeRateRepository';
 import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
 
 import TicketTypesMapper from './ticket-types.mapper';
@@ -16,6 +17,7 @@ export default class TicketTypesService {
     constructor(
         private ticketTypeRepository: ITicketTypeRepository,
         private eventRepository: IEventRepository,
+        private exchangeRateRepository: IExchangeRateRepository,
     ) {}
 
     public async create(eventId: string, data: TicketTypeToCreateType): Promise<TicketTypeType> {
@@ -35,12 +37,27 @@ export default class TicketTypesService {
             throw new CapacityExceededError(event.maxCapacity, currentSum, data.totalQuantity);
         }
 
+        const rateSource = event.rateSource;
+        let currency: 'USD' | 'VES' = 'USD';
+        if (rateSource !== 'CUSTOM') {
+            currency = 'VES';
+        }
+
+        const currentRate = await this.exchangeRateRepository.findCurrentByEventId(eventId);
+
+        const usdPrice = data.price; // Base divisa price (stored in usdPrice)
+        let price = usdPrice;
+        if (currency === 'VES') {
+            price = currentRate ? usdPrice * Number(currentRate.rate) : usdPrice;
+        }
+
         const created = await this.ticketTypeRepository.create({
             eventId,
             name: data.name,
             description: data.description ?? '',
-            price: data.price,
-            currency: data.currency ?? 'USD',
+            price,
+            usdPrice,
+            currency,
             totalQuantity: data.totalQuantity,
             saleStartsAt: data.saleStartsAt ? new Date(data.saleStartsAt) : null,
             saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : null,
@@ -113,8 +130,6 @@ export default class TicketTypesService {
         const updatePayload: Record<string, unknown> = {};
         if (data.name !== undefined) updatePayload.name = data.name;
         if (data.description !== undefined) updatePayload.description = data.description;
-        if (data.price !== undefined) updatePayload.price = data.price;
-        if (data.currency !== undefined) updatePayload.currency = data.currency;
         if (data.totalQuantity !== undefined) updatePayload.totalQuantity = data.totalQuantity;
         if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
         if (data.saleStartsAt !== undefined) {
@@ -122,6 +137,26 @@ export default class TicketTypesService {
         }
         if (data.saleEndsAt !== undefined) {
             updatePayload.saleEndsAt = data.saleEndsAt ? new Date(data.saleEndsAt) : null;
+        }
+
+        const rateSource = event.rateSource;
+        let currency: 'USD' | 'VES' = 'USD';
+        if (rateSource !== 'CUSTOM') {
+            currency = 'VES';
+        }
+        updatePayload.currency = currency;
+
+        if (data.price !== undefined || data.currency !== undefined) {
+            const usdPrice = data.price !== undefined ? data.price : existing.usdPrice;
+            updatePayload.usdPrice = usdPrice;
+
+            const currentRate = await this.exchangeRateRepository.findCurrentByEventId(eventId);
+
+            let price = usdPrice;
+            if (currency === 'VES') {
+                price = currentRate ? usdPrice * Number(currentRate.rate) : usdPrice;
+            }
+            updatePayload.price = price;
         }
 
         const updated = await this.ticketTypeRepository.update(

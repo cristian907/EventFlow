@@ -7,6 +7,7 @@ export default class BcvMapper {
         return {
             usdRate: entity.usdRate,
             eurRate: entity.eurRate,
+            usdtRate: entity.usdtRate ?? undefined,
             valueDate: entity.valueDate ? entity.valueDate.toISOString() : undefined,
             scrapedAt: entity.scrapedAt.toISOString(),
             isStale,

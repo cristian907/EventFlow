@@ -9,6 +9,7 @@ export default class PrismaBcvRateRepository implements IBcvRateRepository {
         id: string;
         usdRate: { toNumber(): number };
         eurRate: { toNumber(): number };
+        usdtRate: { toNumber(): number } | null;
         valueDate: Date | null;
         scrapedAt: Date;
         createdAt: Date;
@@ -17,6 +18,7 @@ export default class PrismaBcvRateRepository implements IBcvRateRepository {
             prisma.id,
             prisma.usdRate.toNumber(),
             prisma.eurRate.toNumber(),
+            prisma.usdtRate ? prisma.usdtRate.toNumber() : null,
             prisma.valueDate,
             prisma.scrapedAt,
             prisma.createdAt,
@@ -26,6 +28,7 @@ export default class PrismaBcvRateRepository implements IBcvRateRepository {
     async create(data: {
         usdRate: number;
         eurRate: number;
+        usdtRate: number | null;
         valueDate: Date | null;
         scrapedAt: Date;
     }): Promise<BcvRate> {
@@ -33,6 +36,7 @@ export default class PrismaBcvRateRepository implements IBcvRateRepository {
             data: {
                 usdRate: data.usdRate,
                 eurRate: data.eurRate,
+                usdtRate: data.usdtRate,
                 valueDate: data.valueDate,
                 scrapedAt: data.scrapedAt,
             },
