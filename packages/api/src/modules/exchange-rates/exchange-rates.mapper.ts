@@ -8,8 +8,9 @@ export default class ExchangeRatesMapper {
             id: entity.id,
             eventId: entity.eventId,
             rate: entity.rate,
-            setBy: entity.setBy,
-            setByName: entity.setByName,
+            source: entity.source,
+            setBy: entity.setBy ?? undefined,
+            setByName: entity.setByName ?? undefined,
             effectiveAt: entity.effectiveAt.toISOString(),
             createdAt: entity.createdAt.toISOString(),
         };

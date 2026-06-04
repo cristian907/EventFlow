@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
             },
         },
         optimizeDeps: {
-            include: ['@eventflow/shared'],
+            exclude: ['@eventflow/shared'],
         },
         preview: {
             host: true,

@@ -2,6 +2,7 @@ import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAccessModule } from '../modules/access';
 import { createAuthModule } from '../modules/auth';
+import { createBcvModule } from '../modules/bcv';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
 import { createPaymentMethodsModule } from '../modules/payment-methods';
@@ -11,8 +12,10 @@ import { createTicketTypesModule } from '../modules/ticket-types';
 import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
 import { createUsersModule } from '../modules/users';
 
+import { BcvProvider } from './bcv/provider';
 import PrismaTransactionManager from './PrismaTransactionManager';
 import PrismaAccessLogRepository from './repositories/PrismaAccessLogRepository';
+import PrismaBcvRateRepository from './repositories/PrismaBcvRateRepository';
 import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
 import PrismaEventRepository from './repositories/PrismaEventRepository';
@@ -34,6 +37,7 @@ export const repositories = {
     order: new PrismaOrderRepository(prisma),
     ticket: new PrismaTicketRepository(prisma),
     accessLog: new PrismaAccessLogRepository(prisma),
+    bcvRate: new PrismaBcvRateRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
@@ -50,6 +54,20 @@ const { router: ticketsRouter, ticketsService } = createTicketsModule(
     cryptoService,
 );
 
+export const providers = {
+    bcv: new BcvProvider(
+        repositories.bcvRate,
+        repositories.event,
+        repositories.exchangeRate,
+        repositories.ticketType,
+        process.env.BCV_CACHE_TTL_MS,
+    ),
+};
+
+export async function initializeProviders(): Promise<void> {
+    await providers.bcv.init();
+}
+
 export const modules = {
     auth: createAuthModule(repositories.user),
     users: createUsersModule(repositories.user),
@@ -57,6 +75,7 @@ export const modules = {
     'events/:eventId/ticket-types': createTicketTypesModule(
         repositories.ticketType,
         repositories.event,
+        repositories.exchangeRate,
     ),
     'events/:eventId/staff': createStaffModule(
         repositories.eventMember,
@@ -78,6 +97,8 @@ export const modules = {
         repositories.ticketType,
         repositories.exchangeRate,
         ticketsService,
+        repositories.bcvRate,
+        repositories.event,
     ),
     'events/:eventId': ticketsRouter,
     'events/:eventId/access': createAccessModule(
@@ -85,4 +106,5 @@ export const modules = {
         repositories.accessLog,
         cryptoService,
     ),
+    'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

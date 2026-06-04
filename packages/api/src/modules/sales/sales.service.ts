@@ -1,5 +1,9 @@
-import { SaleToCreateType, sumPaymentsInUSD } from '@eventflow/shared';
-import { OrderDetailType, ListOrdersResponse } from '@eventflow/shared';
+import {
+    SaleToCreateType,
+    sumPaymentsInDivisa,
+    OrderDetailType,
+    ListOrdersResponse,
+} from '@eventflow/shared';
 
 import {
     InsufficientPaymentError,
@@ -10,7 +14,9 @@ import {
     TicketTypeNotSellableError,
 } from '../../core/errors/BusinessErrors';
 import ITransactionManager from '../../core/interfaces/ITransactionManager';
+import IBcvRateRepository from '../../core/interfaces/repositories/IBcvRateRepository';
 import ICustomerRepository from '../../core/interfaces/repositories/ICustomerRepository';
+import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import IExchangeRateRepository from '../../core/interfaces/repositories/IExchangeRateRepository';
 import IOrderRepository, {
     OrderFilters,
@@ -28,6 +34,8 @@ export default class SalesService {
         private readonly ticketTypeRepository: ITicketTypeRepository,
         private readonly exchangeRateRepository: IExchangeRateRepository,
         private readonly ticketsService: TicketsService,
+        private readonly bcvRateRepository: IBcvRateRepository,
+        private readonly eventRepository: IEventRepository,
     ) {}
 
     async createSale(
@@ -53,18 +61,29 @@ export default class SalesService {
             throw new TicketTypeNotSellableError('el período de venta ha finalizado');
         }
 
-        const unitPriceUSD =
-            ticketType.currency === 'VES' ? ticketType.price / rate.rate : ticketType.price;
-        const totalAmount = unitPriceUSD * data.quantity;
+        const event = await this.eventRepository.findById(eventId);
+        const baseCurrency = event?.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
 
-        const paidUSD = sumPaymentsInUSD(
+        const unitPriceDivisa = ticketType.usdPrice;
+        const totalAmountDivisa = unitPriceDivisa * data.quantity;
+
+        const latestBcv = await this.bcvRateRepository.findLatest();
+        const activeRateNum = Number(rate.rate);
+        const eurRateNum = latestBcv?.eurRate ? Number(latestBcv.eurRate) : activeRateNum;
+        const usdRateNum = latestBcv?.usdRate ? Number(latestBcv.usdRate) : activeRateNum;
+
+        const paidDivisa = sumPaymentsInDivisa(
             data.payments.map((p) => ({
                 amount: p.amount,
                 currency: p.currency as 'USD' | 'VES' | 'EUR',
             })),
-            rate.rate,
+            baseCurrency,
+            activeRateNum,
+            eurRateNum,
+            usdRateNum,
         );
-        if (paidUSD < totalAmount) throw new InsufficientPaymentError(totalAmount, paidUSD);
+        if (paidDivisa < totalAmountDivisa)
+            throw new InsufficientPaymentError(totalAmountDivisa, paidDivisa);
 
         const order = await this.txManager.runInTransaction(async (tx) => {
             const customer = await this.customerRepository.upsertByIdNumber(data.customer, tx);
@@ -82,12 +101,12 @@ export default class SalesService {
                     customerId: customer.id,
                     soldById,
                     exchangeRateId: rate.id,
-                    totalAmount,
+                    totalAmount: totalAmountDivisa,
                     ticketTypeId: data.ticketTypeId,
                     quantity: data.quantity,
-                    unitPrice: unitPriceUSD,
-                    itemCurrency: 'USD',
-                    subtotal: totalAmount,
+                    unitPrice: unitPriceDivisa,
+                    itemCurrency: baseCurrency,
+                    subtotal: totalAmountDivisa,
                     payments: data.payments.map((p) => ({
                         paymentMethodId: p.paymentMethodId,
                         amount: p.amount,

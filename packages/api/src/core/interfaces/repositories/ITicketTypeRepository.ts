@@ -7,6 +7,7 @@ export default interface ITicketTypeRepository {
         name: string;
         description: string;
         price: number;
+        usdPrice: number;
         currency: string;
         totalQuantity: number;
         saleStartsAt?: Date | null;
@@ -23,6 +24,7 @@ export default interface ITicketTypeRepository {
             name?: string;
             description?: string;
             price?: number;
+            usdPrice?: number;
             currency?: string;
             totalQuantity?: number;
             isActive?: boolean;

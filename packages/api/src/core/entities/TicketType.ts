@@ -5,6 +5,7 @@ export default class TicketType {
         public name: string,
         public description: string,
         public price: number,
+        public usdPrice: number,
         public currency: string,
         public totalQuantity: number,
         public soldQuantity: number,

@@ -19,6 +19,8 @@ export default class Event {
         public address: string,
         public maxCapacity: number,
         public status: EventStatus,
+        public autoSyncBcv: boolean,
+        public rateSource: string,
         public createdAt: Date,
         public updatedAt: Date,
     ) {}

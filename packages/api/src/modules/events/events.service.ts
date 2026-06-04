@@ -47,6 +47,8 @@ export default class EventsService {
             address: eventData.address,
             maxCapacity: eventData.maxCapacity,
             imageUrl: eventData.imageUrl || defaultImageUrl,
+            autoSyncBcv: eventData.autoSyncBcv,
+            rateSource: eventData.rateSource || (eventData.autoSyncBcv ? 'USD_BCV' : 'CUSTOM'),
         });
 
         return EventsMapper.toEventType(createdEvent);
@@ -138,8 +140,27 @@ export default class EventsService {
         if (data.endDate !== undefined) payload.endDate = new Date(data.endDate);
         if (data.startTime !== undefined) payload.startTime = new Date(data.startTime);
         if (data.endTime !== undefined) payload.endTime = new Date(data.endTime);
+        if (data.autoSyncBcv !== undefined) {
+            payload.autoSyncBcv = data.autoSyncBcv;
+            payload.rateSource = data.autoSyncBcv ? 'USD_BCV' : 'CUSTOM';
+        }
+        if (data.rateSource !== undefined) {
+            payload.rateSource = data.rateSource;
+            payload.autoSyncBcv = data.rateSource !== 'CUSTOM';
+        }
 
         const updated = await this.eventRepository.update(eventId, payload);
+
+        if (payload.rateSource === 'CUSTOM') {
+            const ticketTypes = await this.ticketTypeRepository.findByEventId(eventId, true);
+            for (const tt of ticketTypes) {
+                await this.ticketTypeRepository.update(tt.id, {
+                    price: tt.usdPrice,
+                    currency: 'USD',
+                });
+            }
+        }
+
         return EventsMapper.toEventType(updated);
     }
 }
