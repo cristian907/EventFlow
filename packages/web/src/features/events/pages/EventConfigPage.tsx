@@ -9,6 +9,9 @@ import {
     ExchangeRateToCreateType,
     PaymentMethodType,
     ExchangeRateType,
+    BotConfigToUpsertSchema,
+    BotConfigToUpsertType,
+    BotConfig,
 } from '@eventflow/shared';
 import {
     faCog,
@@ -23,6 +26,8 @@ import {
     faBoxOpen,
     faSave,
     faHistory,
+    faRobot,
+    faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +36,7 @@ import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
+import { botConfigService } from '../services/botConfigService';
 import { eventService } from '../services/eventService';
 import { exchangeRateService } from '../services/exchangeRateService';
 import { paymentMethodService } from '../services/paymentMethodService';
@@ -63,7 +69,7 @@ const getApiErrorMessage = (err: unknown): string =>
     'Ocurrió un error inesperado.';
 
 /* ─── Tab types ─── */
-type Tab = 'general' | 'payment-methods' | 'exchange-rate';
+type Tab = 'general' | 'payment-methods' | 'exchange-rate' | 'bot-assistant';
 
 /* ─── Payment methods state ─── */
 interface PMState {
@@ -1305,6 +1311,352 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
     );
 }
 
+/* ═══════════════════════════════════════════ BOT ASSISTANT TAB ═══════════════════════════════════════════ */
+function BotAssistantTab({ eventId }: { eventId: string }) {
+    const { currentEvent } = useEvent();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [config, setConfig] = useState<BotConfig | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
+    const [testResult, setTestResult] = useState<string | null>(null);
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        getValues,
+        formState: { errors },
+    } = useForm({
+        resolver: zodResolver(BotConfigToUpsertSchema),
+        defaultValues: {
+            telegramBotToken: '',
+            salesWhatsappNumber: '',
+            salesHandoffMessage: '',
+            welcomeMessage: '',
+            isEnabled: false,
+        },
+    });
+
+    useEffect(() => {
+        let mounted = true;
+        botConfigService
+            .get(eventId)
+            .then((cfg) => {
+                if (!mounted) return;
+                setConfig(cfg);
+                reset({
+                    telegramBotToken: '',
+                    salesWhatsappNumber: cfg.salesWhatsappNumber ?? '',
+                    salesHandoffMessage: cfg.salesHandoffMessage ?? '',
+                    welcomeMessage: cfg.welcomeMessage ?? '',
+                    isEnabled: cfg.isEnabled,
+                });
+            })
+            .catch((err) => {
+                if (mounted) setLoadError(getApiErrorMessage(err));
+            })
+            .finally(() => {
+                if (mounted) setIsLoading(false);
+            });
+        return () => {
+            mounted = false;
+        };
+    }, [eventId, reset]);
+
+    const onSubmit = async (data: BotConfigToUpsertType) => {
+        setIsSaving(true);
+        setSaveError(null);
+        setSaveSuccess(false);
+        try {
+            const updated = await botConfigService.upsert(eventId, data);
+            setConfig(updated);
+            reset({
+                telegramBotToken: '',
+                salesWhatsappNumber: updated.salesWhatsappNumber ?? '',
+                salesHandoffMessage: updated.salesHandoffMessage ?? '',
+                welcomeMessage: updated.welcomeMessage ?? '',
+                isEnabled: updated.isEnabled,
+            });
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (err) {
+            setSaveError(getApiErrorMessage(err));
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const onTestToken = async () => {
+        setIsTesting(true);
+        setTestResult(null);
+        try {
+            const raw = getValues('telegramBotToken');
+            const token = typeof raw === 'string' && raw.trim() ? raw.trim() : undefined;
+            const result = await botConfigService.test(eventId, token);
+            setTestResult(
+                result.ok
+                    ? `✅ Token válido${result.botUsername ? ` — @${result.botUsername}` : ''}`
+                    : '❌ El token no es válido.',
+            );
+        } catch (err) {
+            setTestResult(`❌ ${getApiErrorMessage(err)}`);
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
+    const fieldStyle: React.CSSProperties = {
+        width: '100%',
+        padding: '8px 12px',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        fontSize: 14,
+        fontFamily: 'var(--font-sans)',
+        background: 'var(--bg-elevated)',
+        color: 'var(--text-primary)',
+        boxSizing: 'border-box',
+    };
+    const labelStyle: React.CSSProperties = {
+        display: 'block',
+        fontSize: 13,
+        fontWeight: 500,
+        color: 'var(--text-secondary)',
+        marginBottom: 4,
+    };
+    const errorStyle: React.CSSProperties = { color: 'var(--danger)', fontSize: 12, marginTop: 4 };
+    const hintStyle: React.CSSProperties = {
+        fontSize: 12,
+        color: 'var(--text-secondary)',
+        marginTop: 4,
+    };
+
+    if (isLoading) {
+        return (
+            <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                <FontAwesomeIcon icon={faSpinner} spin /> Cargando configuración...
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div
+                style={{
+                    padding: '10px 14px',
+                    background: 'var(--danger-light)',
+                    border: '1px solid var(--danger)',
+                    borderRadius: 8,
+                    color: 'var(--danger)',
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                }}
+            >
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+                {loadError}
+            </div>
+        );
+    }
+
+    const isActive = currentEvent?.status === 'ACTIVE';
+
+    return (
+        <form
+            onSubmit={(e) => {
+                void handleSubmit(onSubmit)(e);
+            }}
+            style={{ maxWidth: 700 }}
+        >
+            {!isActive && (
+                <div
+                    style={{
+                        padding: '10px 14px',
+                        background: 'var(--warning-light)',
+                        border: '1px solid var(--warning)',
+                        borderRadius: 8,
+                        color: 'var(--warning)',
+                        fontSize: 13,
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faExclamationTriangle} />
+                    El bot solo atiende cuando el evento está en estado ACTIVO.
+                </div>
+            )}
+            {saveError && (
+                <div
+                    style={{
+                        padding: '10px 14px',
+                        background: 'var(--danger-light)',
+                        border: '1px solid var(--danger)',
+                        borderRadius: 8,
+                        color: 'var(--danger)',
+                        fontSize: 13,
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faExclamationTriangle} />
+                    {saveError}
+                </div>
+            )}
+            {saveSuccess && (
+                <div
+                    style={{
+                        padding: '10px 14px',
+                        background: 'var(--success-light)',
+                        border: '1px solid var(--success)',
+                        borderRadius: 8,
+                        color: 'var(--success)',
+                        fontSize: 13,
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    Configuración del bot guardada correctamente.
+                </div>
+            )}
+
+            <div style={{ display: 'grid', gap: 16 }}>
+                {/* Token de Telegram */}
+                <div>
+                    <label style={labelStyle}>Token de Telegram (BotFather)</label>
+                    <input
+                        {...register('telegramBotToken')}
+                        type="password"
+                        autoComplete="off"
+                        placeholder={
+                            config?.hasToken
+                                ? `Token guardado (${config.tokenMask ?? '••••'}). Escribe uno nuevo para reemplazarlo.`
+                                : 'Ej. 123456789:ABCdef...'
+                        }
+                        style={fieldStyle}
+                    />
+                    {errors.telegramBotToken && (
+                        <p style={errorStyle}>{errors.telegramBotToken.message}</p>
+                    )}
+                    <p style={hintStyle}>
+                        Crea un bot con @BotFather en Telegram y pega aquí el token. Se guarda{' '}
+                        <strong>cifrado</strong> y solo se muestra enmascarado.
+                    </p>
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => void onTestToken()}
+                        disabled={isTesting}
+                        style={{
+                            marginTop: 8,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                        }}
+                    >
+                        {isTesting ? (
+                            <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                            <FontAwesomeIcon icon={faPlug} />
+                        )}
+                        Probar token
+                    </button>
+                    {testResult && <p style={{ ...hintStyle, marginTop: 8 }}>{testResult}</p>}
+                </div>
+
+                {/* WhatsApp de ventas */}
+                <div>
+                    <label style={labelStyle}>Número de WhatsApp de ventas (opcional)</label>
+                    <input
+                        {...register('salesWhatsappNumber')}
+                        placeholder="+584141234567"
+                        style={fieldStyle}
+                    />
+                    {errors.salesWhatsappNumber && (
+                        <p style={errorStyle}>{errors.salesWhatsappNumber.message}</p>
+                    )}
+                    <p style={hintStyle}>
+                        Formato internacional. Si lo dejas vacío, el bot informará que la compra no
+                        está disponible por este canal.
+                    </p>
+                </div>
+
+                {/* Mensaje de bienvenida */}
+                <div>
+                    <label style={labelStyle}>Mensaje de bienvenida (opcional)</label>
+                    <textarea
+                        {...register('welcomeMessage')}
+                        rows={3}
+                        style={{ ...fieldStyle, resize: 'vertical' }}
+                    />
+                    {errors.welcomeMessage && (
+                        <p style={errorStyle}>{errors.welcomeMessage.message}</p>
+                    )}
+                </div>
+
+                {/* Mensaje de handoff */}
+                <div>
+                    <label style={labelStyle}>Mensaje de derivación a ventas (opcional)</label>
+                    <textarea
+                        {...register('salesHandoffMessage')}
+                        rows={2}
+                        style={{ ...fieldStyle, resize: 'vertical' }}
+                    />
+                    {errors.salesHandoffMessage && (
+                        <p style={errorStyle}>{errors.salesHandoffMessage.message}</p>
+                    )}
+                </div>
+
+                {/* Activar bot */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                        {...register('isEnabled')}
+                        type="checkbox"
+                        id="bot-isEnabled"
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                    />
+                    <label
+                        htmlFor="bot-isEnabled"
+                        style={{
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Activar bot
+                    </label>
+                </div>
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+                <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={isSaving}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                    {isSaving ? (
+                        <FontAwesomeIcon icon={faSpinner} spin />
+                    ) : (
+                        <FontAwesomeIcon icon={faSave} />
+                    )}
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+    );
+}
+
 /* ═══════════════════════════════════════════ MAIN PAGE ═══════════════════════════════════════════ */
 export function EventConfigPage() {
     const { eventId } = useParams<{ eventId: string }>();
@@ -1316,6 +1668,7 @@ export function EventConfigPage() {
         { id: 'general', label: 'General', icon: faCog },
         { id: 'payment-methods', label: 'Métodos de pago', icon: faCreditCard },
         { id: 'exchange-rate', label: 'Tasa de cambio', icon: faExchangeAlt },
+        { id: 'bot-assistant', label: 'Asistente / Bot', icon: faRobot },
     ];
 
     return (
@@ -1382,6 +1735,7 @@ export function EventConfigPage() {
                 {activeTab === 'general' && <GeneralTab eventId={eventId} />}
                 {activeTab === 'payment-methods' && <PaymentMethodsTab eventId={eventId} />}
                 {activeTab === 'exchange-rate' && <ExchangeRateTab eventId={eventId} />}
+                {activeTab === 'bot-assistant' && <BotAssistantTab eventId={eventId} />}
             </div>
         </div>
     );
