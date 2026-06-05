@@ -7,3 +7,4 @@ export * from './staff.types';
 export * from './sale.types';
 export * from './ticket.types';
 export * from './access.types';
+export * from './botConfig.types';
