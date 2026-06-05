@@ -60,6 +60,7 @@ model Event {
   orders Order[]
   tickets Ticket[]
   accessLogs AccessLog[]
+  botConfig EventBotConfig?
   autoSyncBcv Boolean @default(false)
   rateSource  String  @default("CUSTOM")
   createdAt DateTime @default(now())
@@ -70,6 +71,19 @@ enum EventStatus {
   DRAFT
   ACTIVE
   CANCELLED
+}
+
+model EventBotConfig {
+  id                        String   @id @default(uuid())
+  event                     Event    @relation(fields: [eventId], references: [id])
+  eventId                   String   @unique
+  telegramBotTokenEncrypted String?
+  salesWhatsappNumber       String?
+  salesHandoffMessage       String?
+  welcomeMessage            String?
+  isEnabled                 Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 model EventMember {
