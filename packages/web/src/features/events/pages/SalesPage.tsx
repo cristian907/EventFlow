@@ -532,10 +532,15 @@ function NewSaleModal({
         if (currentEvent?.rateSource === 'CUSTOM') return exchangeRate || 0;
         if (currentEvent?.rateSource === 'USDT_PARALELO')
             return bcvRates?.usdtRate || exchangeRate || 0;
+        if (currentEvent?.rateSource === 'EUR_BCV')
+            return bcvRates?.usdRate || (exchangeRate ? exchangeRate / 1.08 : 0);
         return bcvRates?.usdRate || exchangeRate || 0;
     })();
 
-    const eurToVesRate = bcvRates?.eurRate || usdToVesRate * 1.08;
+    const eurToVesRate = (() => {
+        if (currentEvent?.rateSource === 'EUR_BCV') return bcvRates?.eurRate || exchangeRate || 0;
+        return bcvRates?.eurRate || usdToVesRate * 1.08;
+    })();
 
     const selectedTicketType = ticketTypes.find((tt) => tt.id === watchTicketTypeId);
 

@@ -38,12 +38,21 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
             maxCapacity: event.maxCapacity,
         };
 
-        // 2. Fetch all orders with items and sellers for Sales computations
+        // 2. Get latest BCV rate for EUR ratio conversions (used to convert EUR orders/payments to USD)
+        const latestBcv = await this.prisma.bcvRate.findFirst({
+            orderBy: { scrapedAt: 'desc' },
+        });
+        const bcvEurRate = latestBcv?.eurRate ? Number(latestBcv.eurRate) : 38;
+        const bcvUsdRate = latestBcv?.usdRate ? Number(latestBcv.usdRate) : 36;
+        const eurUsdRatio = bcvUsdRate > 0 ? bcvEurRate / bcvUsdRate : 1.08;
+
+        // 3. Fetch all orders with items and sellers for Sales computations
         const orders = await this.prisma.order.findMany({
             where: { eventId },
             select: {
                 id: true,
                 totalAmount: true,
+                currency: true,
                 soldById: true,
                 soldBy: { select: { fullName: true } },
                 createdAt: true,
@@ -53,6 +62,7 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
                         ticketTypeId: true,
                         ticketType: { select: { name: true } },
                         subtotal: true,
+                        currency: true,
                     },
                 },
             },
@@ -73,8 +83,10 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
         const useHourly = durationMs <= 3 * 24 * 60 * 60 * 1000; // <= 3 days
 
         for (const order of orders) {
+            const isEur = order.currency === 'EUR';
             const orderTotal = Number(order.totalAmount);
-            totalRevenueUSD += orderTotal;
+            const orderTotalUSD = isEur ? orderTotal * eurUsdRatio : orderTotal;
+            totalRevenueUSD += orderTotalUSD;
 
             // Group by Seller
             const sellerId = order.soldById;
@@ -84,7 +96,7 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
                 revenue: 0,
                 quantity: 0,
             };
-            prevSeller.revenue += orderTotal;
+            prevSeller.revenue += orderTotalUSD;
 
             let orderQuantity = 0;
             // Group by Ticket Type
@@ -92,6 +104,8 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
                 const typeId = item.ticketTypeId;
                 const typeName = item.ticketType?.name || 'Entrada Desconocida';
                 const itemSubtotal = Number(item.subtotal);
+                const itemSubtotalUSD =
+                    item.currency === 'EUR' ? itemSubtotal * eurUsdRatio : itemSubtotal;
                 const itemQty = item.quantity;
                 orderQuantity += itemQty;
 
@@ -100,7 +114,7 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
                     revenue: 0,
                     quantity: 0,
                 };
-                prevType.revenue += itemSubtotal;
+                prevType.revenue += itemSubtotalUSD;
                 prevType.quantity += itemQty;
                 ticketTypeMap.set(typeId, prevType);
             }
@@ -125,7 +139,7 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
             }
 
             const prevTime = salesTimeMap.get(timeKey) || { revenue: 0, quantity: 0 };
-            prevTime.revenue += orderTotal;
+            prevTime.revenue += orderTotalUSD;
             prevTime.quantity += orderQuantity;
             salesTimeMap.set(timeKey, prevTime);
         }
@@ -172,19 +186,12 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
                     select: {
                         id: true,
                         totalAmount: true,
+                        currency: true,
                         exchangeRate: { select: { rate: true } },
                     },
                 },
             },
         });
-
-        // Get latest BCV rate for EUR ratio conversions
-        const latestBcv = await this.prisma.bcvRate.findFirst({
-            orderBy: { scrapedAt: 'desc' },
-        });
-        const bcvEurRate = latestBcv?.eurRate ? Number(latestBcv.eurRate) : 38;
-        const bcvUsdRate = latestBcv?.usdRate ? Number(latestBcv.usdRate) : 36;
-        const eurUsdRatio = bcvUsdRate > 0 ? bcvEurRate / bcvUsdRate : 1.08;
 
         // Group payments by orderId
         const paymentsByOrder = new Map<string, typeof payments>();
@@ -204,7 +211,9 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
 
         for (const [, orderPayments] of paymentsByOrder.entries()) {
             const order = orderPayments[0].order;
+            const isEur = order.currency === 'EUR';
             const orderTotal = Number(order.totalAmount);
+            const orderTotalUSD = isEur ? orderTotal * eurUsdRatio : orderTotal;
 
             // Compute raw USD equivalents first for this order
             const parsedPayments = orderPayments.map((p) => {
@@ -232,9 +241,9 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
 
             const totalPaymentsUsd = parsedPayments.reduce((sum, p) => sum + p.usdEquivalent, 0);
 
-            // If payments exceed orderTotal, scale them down to reflect change given back
-            if (totalPaymentsUsd > orderTotal && totalPaymentsUsd > 0) {
-                const scale = orderTotal / totalPaymentsUsd;
+            // If payments exceed orderTotalUSD, scale them down to reflect change given back
+            if (totalPaymentsUsd > orderTotalUSD && totalPaymentsUsd > 0) {
+                const scale = orderTotalUSD / totalPaymentsUsd;
                 for (const p of parsedPayments) {
                     p.amount = p.amount * scale;
                     p.usdEquivalent = p.usdEquivalent * scale;

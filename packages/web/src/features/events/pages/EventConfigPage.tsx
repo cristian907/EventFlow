@@ -1505,12 +1505,14 @@ function ExchangeRateTab({ eventId }: { eventId: string }) {
         (currentEvent?.rateSource as RateSource) ?? 'CUSTOM',
     );
 
-    // Adjust selectedRateSource when currentEvent changes (render-time sync)
-    const [prevEventId, setPrevEventId] = useState(currentEvent?.id);
-    if (currentEvent && currentEvent.id !== prevEventId) {
-        setPrevEventId(currentEvent.id);
-        setSelectedRateSource((currentEvent.rateSource as RateSource) ?? 'CUSTOM');
-    }
+    // Adjust selectedRateSource when currentEvent changes using useEffect to avoid render-time updates
+    useEffect(() => {
+        if (currentEvent) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setSelectedRateSource((currentEvent.rateSource as RateSource) ?? 'CUSTOM');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentEvent?.id, currentEvent?.rateSource]);
 
     const {
         register,

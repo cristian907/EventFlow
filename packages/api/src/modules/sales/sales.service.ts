@@ -95,8 +95,22 @@ export default class SalesService {
 
         const latestBcv = await this.bcvRateRepository.findLatest();
         const activeRateNum = Number(rate.rate);
-        const eurRateNum = latestBcv?.eurRate ? Number(latestBcv.eurRate) : activeRateNum;
-        const usdRateNum = latestBcv?.usdRate ? Number(latestBcv.usdRate) : activeRateNum;
+
+        let eurRateNum: number;
+        let usdRateNum: number;
+
+        if (latestBcv) {
+            eurRateNum = Number(latestBcv.eurRate);
+            usdRateNum = Number(latestBcv.usdRate);
+        } else {
+            if (event.rateSource === 'EUR_BCV') {
+                eurRateNum = activeRateNum;
+                usdRateNum = activeRateNum / 1.08;
+            } else {
+                usdRateNum = activeRateNum;
+                eurRateNum = activeRateNum * 1.08;
+            }
+        }
 
         const paidDivisa = sumPaymentsInDivisa(
             data.payments.map((p) => ({
