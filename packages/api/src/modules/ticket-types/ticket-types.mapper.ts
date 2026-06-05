@@ -17,6 +17,7 @@ export default class TicketTypesMapper {
             name: entity.name,
             description: entity.description,
             price: entity.price,
+            usdPrice: entity.usdPrice,
             currency: entity.currency as TicketTypeType['currency'],
             totalQuantity: entity.totalQuantity,
             soldQuantity: entity.soldQuantity,

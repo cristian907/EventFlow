@@ -13,6 +13,8 @@ export default interface IEventRepository {
         address: string;
         maxCapacity: number;
         imageUrl: string;
+        rateSource?: string;
+        autoSyncBcv?: boolean;
     }): Promise<Event>;
 
     findById(id: string): Promise<Event | null>;
@@ -38,10 +40,14 @@ export default interface IEventRepository {
             address?: string;
             maxCapacity?: number;
             imageUrl?: string;
+            rateSource?: string;
+            autoSyncBcv?: boolean;
         },
     ): Promise<Event>;
 
     getMemberRole(eventId: string, userId: string): Promise<string | null>;
 
     createMember(eventId: string, userId: string, role: string): Promise<void>;
+
+    findActiveAutoSyncEvents(): Promise<Event[]>;
 }

@@ -15,7 +15,8 @@ export default class ExchangeRatesService {
     public async create(
         eventId: string,
         data: ExchangeRateToCreateType,
-        setBy: string,
+        setBy?: string,
+        source: 'manual' | 'bcv' | 'paralelo' = 'manual',
     ): Promise<ExchangeRateType> {
         const event = await this.eventRepository.findById(eventId);
         if (!event) throw new EventNotFoundError(eventId);
@@ -23,6 +24,7 @@ export default class ExchangeRatesService {
         const created = await this.exchangeRateRepository.create({
             eventId,
             rate: data.rate,
+            source,
             setBy,
             effectiveAt: new Date(),
         });

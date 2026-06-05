@@ -59,6 +59,11 @@ export const EventToCreateSchema = z
                 .positive('La capacidad máxima debe ser mayor a 0'),
         ),
         imageUrl: z.string().optional().or(z.literal('')),
+        autoSyncBcv: z.boolean().default(false).optional(),
+        rateSource: z
+            .enum(['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM'])
+            .default('CUSTOM')
+            .optional(),
     })
     .refine(
         (data) => {
@@ -134,6 +139,8 @@ export const EventToUpdateSchema = z
             )
             .optional(),
         imageUrl: z.string().optional().or(z.literal('')),
+        autoSyncBcv: z.boolean().optional(),
+        rateSource: z.enum(['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM']).optional(),
     })
     .refine(
         (data) => {

@@ -2,6 +2,7 @@ import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAccessModule } from '../modules/access';
 import { createAuthModule } from '../modules/auth';
+import { createBcvModule } from '../modules/bcv';
 import { createBotConfigModule } from '../modules/bot-config';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
@@ -14,9 +15,11 @@ import { createTicketTypesModule } from '../modules/ticket-types';
 import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
 import { createUsersModule } from '../modules/users';
 
+import { BcvProvider } from './bcv/provider';
 import BotTokenCipher from './BotTokenCipher';
 import PrismaTransactionManager from './PrismaTransactionManager';
 import PrismaAccessLogRepository from './repositories/PrismaAccessLogRepository';
+import PrismaBcvRateRepository from './repositories/PrismaBcvRateRepository';
 import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
 import PrismaEventBotConfigRepository from './repositories/PrismaEventBotConfigRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
@@ -40,6 +43,7 @@ export const repositories = {
     ticket: new PrismaTicketRepository(prisma),
     accessLog: new PrismaAccessLogRepository(prisma),
     eventBotConfig: new PrismaEventBotConfigRepository(prisma),
+    bcvRate: new PrismaBcvRateRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
@@ -63,6 +67,20 @@ const { router: ticketsRouter, ticketsService } = createTicketsModule(
     cryptoService,
 );
 
+export const providers = {
+    bcv: new BcvProvider(
+        repositories.bcvRate,
+        repositories.event,
+        repositories.exchangeRate,
+        repositories.ticketType,
+        process.env.BCV_CACHE_TTL_MS,
+    ),
+};
+
+export async function initializeProviders(): Promise<void> {
+    await providers.bcv.init();
+}
+
 export const modules = {
     auth: createAuthModule(repositories.user),
     users: createUsersModule(repositories.user),
@@ -70,6 +88,7 @@ export const modules = {
     'events/:eventId/ticket-types': createTicketTypesModule(
         repositories.ticketType,
         repositories.event,
+        repositories.exchangeRate,
     ),
     'events/:eventId/staff': createStaffModule(
         repositories.eventMember,
@@ -91,6 +110,8 @@ export const modules = {
         repositories.ticketType,
         repositories.exchangeRate,
         ticketsService,
+        repositories.bcvRate,
+        repositories.event,
     ),
     'events/:eventId/bot-config': createBotConfigModule(
         repositories.eventBotConfig,
@@ -105,4 +126,5 @@ export const modules = {
         cryptoService,
     ),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
+    'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

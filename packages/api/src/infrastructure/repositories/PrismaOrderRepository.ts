@@ -131,7 +131,7 @@ export default class PrismaOrderRepository implements IOrderRepository {
                 customerId: data.customerId,
                 soldById: data.soldById,
                 exchangeRateId: data.exchangeRateId,
-                currency: 'USD',
+                currency: data.itemCurrency || 'USD',
                 totalAmount: data.totalAmount,
                 items: {
                     create: {
