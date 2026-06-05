@@ -288,5 +288,20 @@ export class EventNotActiveError extends BusinessError {
                 status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
             }).`,
         );
+export class InvalidBotTokenError extends BusinessError {
+    public readonly name = 'InvalidBotTokenError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('No hay un token de Telegram para validar.');
+    }
+}
+
+export class EventNotPublicError extends BusinessError {
+    public readonly name = 'EventNotPublicError';
+    public readonly statusCode = 404;
+
+    constructor() {
+        super('El evento no está disponible públicamente.');
     }
 }
