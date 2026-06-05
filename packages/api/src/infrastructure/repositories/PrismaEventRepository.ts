@@ -38,6 +38,8 @@ export default class PrismaEventRepository implements IEventRepository {
             prismaEvent.address,
             prismaEvent.maxCapacity,
             toDomainStatus(prismaEvent.status),
+            prismaEvent.autoSyncBcv,
+            prismaEvent.rateSource,
             prismaEvent.createdAt,
             prismaEvent.updatedAt,
         );
@@ -55,6 +57,8 @@ export default class PrismaEventRepository implements IEventRepository {
         address: string;
         maxCapacity: number;
         imageUrl: string;
+        rateSource?: string;
+        autoSyncBcv?: boolean;
     }): Promise<Event> {
         const createdEvent = await this.prismaClient.event.create({
             data: {
@@ -69,6 +73,8 @@ export default class PrismaEventRepository implements IEventRepository {
                 address: eventData.address,
                 maxCapacity: eventData.maxCapacity,
                 imageUrl: eventData.imageUrl,
+                autoSyncBcv: eventData.autoSyncBcv ?? false,
+                rateSource: eventData.rateSource ?? 'CUSTOM',
                 status: PrismaEventStatus.DRAFT,
                 eventMembers: {
                     create: {
@@ -155,11 +161,18 @@ export default class PrismaEventRepository implements IEventRepository {
             address?: string;
             maxCapacity?: number;
             imageUrl?: string;
+            rateSource?: string;
+            autoSyncBcv?: boolean;
+            status?: EventStatus;
         },
     ): Promise<Event> {
+        const updateData: Prisma.EventUpdateInput = {
+            ...data,
+            status: data.status ? toPrismaStatus(data.status) : undefined,
+        };
         const updated = await this.prismaClient.event.update({
             where: { id },
-            data,
+            data: updateData,
         });
         return this.mapToEventEntity(updated);
     }
@@ -182,5 +195,15 @@ export default class PrismaEventRepository implements IEventRepository {
                 role: role as PrismaEventMemberRole,
             },
         });
+    }
+
+    async findActiveAutoSyncEvents(): Promise<Event[]> {
+        const prismaEvents = await this.prismaClient.event.findMany({
+            where: {
+                rateSource: { not: 'CUSTOM' },
+                status: { not: PrismaEventStatus.CANCELLED },
+            },
+        });
+        return prismaEvents.map((pe) => this.mapToEventEntity(pe));
     }
 }

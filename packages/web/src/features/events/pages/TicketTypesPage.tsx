@@ -67,7 +67,7 @@ function getApiError(err: unknown): string {
 
 /* ─── Format helpers ─── */
 function formatPrice(price: number, currency: string): string {
-    return `${currency === 'VES' ? 'Bs.' : '$'} ${price.toFixed(2)}`;
+    return `${currency === 'VES' ? 'Bs.' : currency === 'EUR' ? '€' : '$'} ${price.toFixed(2)}`;
 }
 
 function formatDate(iso: string | null): string {
@@ -168,11 +168,13 @@ function CreateModal({
     onCreated,
     eventId,
     maxSaleEndsAt,
+    rateSource,
 }: {
     onClose: () => void;
     onCreated: () => void;
     eventId: string;
     maxSaleEndsAt: string;
+    rateSource?: string;
 }) {
     const {
         register,
@@ -262,30 +264,29 @@ function CreateModal({
                             rows={2}
                         />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div className="field">
-                            <label className="field-label">Precio *</label>
-                            <input
-                                className="input"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                {...register('price')}
-                                placeholder="0.00"
-                            />
-                            {errors.price && (
-                                <span className="field-hint" style={{ color: 'var(--danger)' }}>
-                                    {errors.price.message as string}
-                                </span>
-                            )}
-                        </div>
-                        <div className="field">
-                            <label className="field-label">Moneda</label>
-                            <select className="select" {...register('currency')}>
-                                <option value="USD">USD ($)</option>
-                                <option value="VES">VES (Bs.)</option>
-                            </select>
-                        </div>
+                    <div className="field">
+                        <label className="field-label">
+                            Precio (
+                            {rateSource === 'EUR_BCV'
+                                ? 'EUR'
+                                : rateSource === 'USDT_PARALELO'
+                                  ? 'USDT'
+                                  : 'USD'}
+                            ) *
+                        </label>
+                        <input
+                            className="input"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            {...register('price')}
+                            placeholder="0.00"
+                        />
+                        {errors.price && (
+                            <span className="field-hint" style={{ color: 'var(--danger)' }}>
+                                {errors.price.message as string}
+                            </span>
+                        )}
                     </div>
                     <div className="field">
                         <label className="field-label">Cantidad Total *</label>
@@ -360,12 +361,14 @@ function EditModal({
     eventId,
     ticketType,
     maxSaleEndsAt,
+    rateSource,
 }: {
     onClose: () => void;
     onUpdated: () => void;
     eventId: string;
     ticketType: TicketTypeType;
     maxSaleEndsAt: string;
+    rateSource?: string;
 }) {
     const {
         register,
@@ -376,7 +379,7 @@ function EditModal({
         defaultValues: {
             name: ticketType.name,
             description: ticketType.description,
-            price: ticketType.price,
+            price: ticketType.usdPrice,
             currency: ticketType.currency,
             totalQuantity: ticketType.totalQuantity,
             saleStartsAt: toDateTimeLocal(ticketType.saleStartsAt),
@@ -448,29 +451,28 @@ function EditModal({
                         <label className="field-label">Descripción</label>
                         <textarea className="textarea" {...register('description')} rows={2} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div className="field">
-                            <label className="field-label">Precio</label>
-                            <input
-                                className="input"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                {...register('price')}
-                            />
-                            {errors.price && (
-                                <span className="field-hint" style={{ color: 'var(--danger)' }}>
-                                    {errors.price.message as string}
-                                </span>
-                            )}
-                        </div>
-                        <div className="field">
-                            <label className="field-label">Moneda</label>
-                            <select className="select" {...register('currency')}>
-                                <option value="USD">USD ($)</option>
-                                <option value="VES">VES (Bs.)</option>
-                            </select>
-                        </div>
+                    <div className="field">
+                        <label className="field-label">
+                            Precio (
+                            {rateSource === 'EUR_BCV'
+                                ? 'EUR'
+                                : rateSource === 'USDT_PARALELO'
+                                  ? 'USDT'
+                                  : 'USD'}
+                            ) *
+                        </label>
+                        <input
+                            className="input"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            {...register('price')}
+                        />
+                        {errors.price && (
+                            <span className="field-hint" style={{ color: 'var(--danger)' }}>
+                                {errors.price.message as string}
+                            </span>
+                        )}
                     </div>
                     <div className="field">
                         <label className="field-label">Cantidad Total</label>
@@ -899,7 +901,39 @@ export function TicketTypesPage() {
                                                 fontSize: 13,
                                             }}
                                         >
-                                            {formatPrice(tt.price, tt.currency)}
+                                            {currentEvent?.rateSource === 'EUR_BCV' ? (
+                                                <>
+                                                    € {tt.usdPrice.toFixed(2)}
+                                                    {tt.currency === 'VES' && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 11,
+                                                                color: 'var(--text-secondary)',
+                                                                fontWeight: 400,
+                                                                marginLeft: 4,
+                                                            }}
+                                                        >
+                                                            (~ {formatPrice(tt.price, 'VES')})
+                                                        </span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    $ {tt.usdPrice.toFixed(2)}
+                                                    {tt.currency === 'VES' && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 11,
+                                                                color: 'var(--text-secondary)',
+                                                                fontWeight: 400,
+                                                                marginLeft: 4,
+                                                            }}
+                                                        >
+                                                            (~ {formatPrice(tt.price, 'VES')})
+                                                        </span>
+                                                    )}
+                                                </>
+                                            )}
                                         </span>
                                     </td>
                                     <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
@@ -1029,6 +1063,7 @@ export function TicketTypesPage() {
                     maxSaleEndsAt={toDateTimeLocal(currentEvent?.endTime as string)}
                     onClose={() => setShowCreateModal(false)}
                     onCreated={handleCreated}
+                    rateSource={currentEvent?.rateSource}
                 />
             )}
             {editingTicketType && eventId && (
@@ -1038,6 +1073,7 @@ export function TicketTypesPage() {
                     maxSaleEndsAt={toDateTimeLocal(currentEvent?.endTime as string)}
                     onClose={() => setEditingTicketType(null)}
                     onUpdated={handleUpdated}
+                    rateSource={currentEvent?.rateSource}
                 />
             )}
             {togglingTicketType && eventId && (

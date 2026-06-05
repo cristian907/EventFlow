@@ -277,3 +277,16 @@ export class TicketEventMismatchError extends BusinessError {
         super('El ticket no pertenece a este evento.');
     }
 }
+
+export class EventNotActiveError extends BusinessError {
+    public readonly name = 'EventNotActiveError';
+    public readonly statusCode = 400;
+
+    constructor(status: string) {
+        super(
+            `El evento no está activo (su estado actual es ${
+                status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
+            }).`,
+        );
+    }
+}

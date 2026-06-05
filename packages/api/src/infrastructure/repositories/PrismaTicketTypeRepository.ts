@@ -13,12 +13,14 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
     constructor(private prismaClient: PrismaClient) {}
 
     private mapToEntity(prisma: PrismaTicketType): TicketType {
+        const usdPrice = prisma.usdPrice || (prisma.currency === 'USD' ? prisma.price : 0);
         return new TicketType(
             prisma.id,
             prisma.eventId,
             prisma.name,
             prisma.description,
             prisma.price,
+            usdPrice,
             prisma.currency,
             prisma.totalQuantity,
             prisma.soldQuantity,
@@ -35,6 +37,7 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
         name: string;
         description: string;
         price: number;
+        usdPrice: number;
         currency: string;
         totalQuantity: number;
         saleStartsAt?: Date | null;
@@ -46,6 +49,7 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
                 name: data.name,
                 description: data.description,
                 price: data.price,
+                usdPrice: data.usdPrice,
                 currency: data.currency as PrismaCurrency,
                 totalQuantity: data.totalQuantity,
                 soldQuantity: 0,
@@ -81,6 +85,7 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
             name?: string;
             description?: string;
             price?: number;
+            usdPrice?: number;
             currency?: string;
             totalQuantity?: number;
             isActive?: boolean;
@@ -93,6 +98,7 @@ export default class PrismaTicketTypeRepository implements ITicketTypeRepository
         if (data.name !== undefined) updateData.name = data.name;
         if (data.description !== undefined) updateData.description = data.description;
         if (data.price !== undefined) updateData.price = data.price;
+        if (data.usdPrice !== undefined) updateData.usdPrice = data.usdPrice;
         if (data.currency !== undefined) updateData.currency = data.currency as PrismaCurrency;
         if (data.totalQuantity !== undefined) updateData.totalQuantity = data.totalQuantity;
         if (data.isActive !== undefined) updateData.isActive = data.isActive;

@@ -1,6 +1,6 @@
 import { TicketTypeToCreate, TicketTypeToUpdate } from '../schemas/ticketType.schemas';
 
-export type Currency = 'USD' | 'VES';
+export type Currency = 'USD' | 'VES' | 'EUR';
 
 export interface TicketTypeType {
     id: string;
@@ -8,6 +8,7 @@ export interface TicketTypeType {
     name: string;
     description: string;
     price: number;
+    usdPrice: number;
     currency: Currency;
     totalQuantity: number;
     soldQuantity: number;

@@ -9,8 +9,9 @@ export default class PrismaExchangeRateRepository implements IExchangeRateReposi
         id: string;
         eventId: string;
         rate: { toNumber(): number };
-        setBy: string;
-        setByUser: { fullName: string };
+        source: string;
+        setBy: string | null;
+        setByUser: { fullName: string } | null;
         effectiveAt: Date;
         createdAt: Date;
     }): ExchangeRate {
@@ -18,8 +19,9 @@ export default class PrismaExchangeRateRepository implements IExchangeRateReposi
             prisma.id,
             prisma.eventId,
             prisma.rate.toNumber(),
+            prisma.source as 'manual' | 'bcv' | 'paralelo',
             prisma.setBy,
-            prisma.setByUser.fullName,
+            prisma.setByUser?.fullName || 'Sistema',
             prisma.effectiveAt,
             prisma.createdAt,
         );
@@ -28,13 +30,15 @@ export default class PrismaExchangeRateRepository implements IExchangeRateReposi
     async create(data: {
         eventId: string;
         rate: number;
-        setBy: string;
+        source: 'manual' | 'bcv' | 'paralelo';
+        setBy?: string;
         effectiveAt: Date;
     }): Promise<ExchangeRate> {
         const created = await this.prismaClient.exchangeRate.create({
             data: {
                 eventId: data.eventId,
                 rate: data.rate,
+                source: data.source,
                 setBy: data.setBy,
                 effectiveAt: data.effectiveAt,
             },

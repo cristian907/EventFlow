@@ -9,11 +9,13 @@ import {
     faExclamationTriangle,
     faBan,
     faTimes,
+    faLock,
+    faCog,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
 import { accessService } from '../services/accessService';
@@ -321,7 +323,7 @@ function ManualSearchView({ eventId }: { eventId: string }) {
 /* ─── Main Page ─── */
 export default function DoorCheckPage() {
     const { eventId } = useParams<{ eventId: string }>();
-    const { currentEvent } = useEvent();
+    const { currentEvent, eventRole } = useEvent();
     const [mode, setMode] = useState<'scan' | 'manual'>('scan');
     const [overlay, setOverlay] = useState<OverlayData | null>(null);
     const [validatedCount, setValidatedCount] = useState(0);
@@ -344,8 +346,103 @@ export default function DoorCheckPage() {
 
     if (!eventId) return null;
 
+    if (currentEvent?.status !== 'ACTIVE') {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '60vh',
+                    padding: '2rem',
+                }}
+            >
+                <div
+                    style={{
+                        background: 'var(--bg-elevated)',
+                        padding: '3rem 2rem',
+                        borderRadius: 'var(--r-lg)',
+                        boxShadow: 'var(--shadow-lg)',
+                        border: '1px solid var(--border)',
+                        maxWidth: 480,
+                        width: '95%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '1.5rem',
+                        textAlign: 'center',
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: '50%',
+                            background:
+                                currentEvent?.status === 'CANCELLED'
+                                    ? 'var(--danger-light)'
+                                    : 'var(--primary-light)',
+                            color:
+                                currentEvent?.status === 'CANCELLED'
+                                    ? 'var(--danger)'
+                                    : 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <FontAwesomeIcon
+                            icon={currentEvent?.status === 'CANCELLED' ? faBan : faLock}
+                            size="2x"
+                        />
+                    </div>
+                    <div>
+                        <h3
+                            style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 700,
+                                margin: '0 0 0.5rem',
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            Módulo Inactivo
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '0.925rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.5,
+                                margin: 0,
+                            }}
+                        >
+                            {currentEvent?.status === 'CANCELLED'
+                                ? 'Este evento ha sido CANCELADO. Las operaciones de taquilla y validación de accesos se encuentran suspendidas permanentemente.'
+                                : 'Este evento se encuentra en estado BORRADOR. Debes publicar/activar el evento desde los ajustes generales para habilitar la taquilla y validación en puerta.'}
+                        </p>
+                    </div>
+                    {currentEvent?.status === 'DRAFT' &&
+                        (eventRole?.toUpperCase() === 'ADMIN' ||
+                            eventRole?.toUpperCase() === 'ORGANIZER') && (
+                            <Link
+                                to={`/events/${eventId}/config`}
+                                className="btn btn-primary"
+                                style={{
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faCog} /> Ir a Ajustes del Evento
+                            </Link>
+                        )}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="door-check">
+        <div className="door-check" style={{ position: 'relative', minHeight: '400px' }}>
             {/* Header */}
             <div className="door-check__header">
                 <div className="door-check__header-row">

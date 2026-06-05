@@ -1,5 +1,9 @@
-import { SaleToCreateType, sumPaymentsInUSD } from '@eventflow/shared';
-import { OrderDetailType, ListOrdersResponse } from '@eventflow/shared';
+import {
+    SaleToCreateType,
+    sumPaymentsInDivisa,
+    OrderDetailType,
+    ListOrdersResponse,
+} from '@eventflow/shared';
 
 import {
     InsufficientPaymentError,
@@ -8,9 +12,13 @@ import {
     OrderNotFoundError,
     TicketTypeNotFoundError,
     TicketTypeNotSellableError,
+    EventNotActiveError,
+    EventNotFoundError,
 } from '../../core/errors/BusinessErrors';
 import ITransactionManager from '../../core/interfaces/ITransactionManager';
+import IBcvRateRepository from '../../core/interfaces/repositories/IBcvRateRepository';
 import ICustomerRepository from '../../core/interfaces/repositories/ICustomerRepository';
+import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import IExchangeRateRepository from '../../core/interfaces/repositories/IExchangeRateRepository';
 import IOrderRepository, {
     OrderFilters,
@@ -20,6 +28,25 @@ import TicketsService from '../tickets/tickets.service';
 
 import SalesMapper from './sales.mapper';
 
+function convertFromDivisa(
+    amountDivisa: number,
+    targetCurrency: 'USD' | 'VES' | 'EUR',
+    baseCurrency: 'USD' | 'EUR',
+    activeRate: number,
+    eurRate: number,
+    usdRate: number,
+): number {
+    if (targetCurrency === baseCurrency) {
+        return amountDivisa;
+    }
+    if (targetCurrency === 'VES') {
+        return amountDivisa * activeRate;
+    }
+    const targetRate = targetCurrency === 'EUR' ? eurRate : usdRate;
+    if (targetRate === 0) return 0;
+    return (amountDivisa * activeRate) / targetRate;
+}
+
 export default class SalesService {
     constructor(
         private readonly txManager: ITransactionManager,
@@ -28,6 +55,8 @@ export default class SalesService {
         private readonly ticketTypeRepository: ITicketTypeRepository,
         private readonly exchangeRateRepository: IExchangeRateRepository,
         private readonly ticketsService: TicketsService,
+        private readonly bcvRateRepository: IBcvRateRepository,
+        private readonly eventRepository: IEventRepository,
     ) {}
 
     async createSale(
@@ -35,6 +64,12 @@ export default class SalesService {
         soldById: string,
         data: SaleToCreateType,
     ): Promise<OrderDetailType> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) throw new EventNotFoundError(eventId);
+        if (event.status !== 'ACTIVE') {
+            throw new EventNotActiveError(event.status);
+        }
+
         const rate = await this.exchangeRateRepository.findCurrentByEventId(eventId);
         if (!rate) throw new NoActiveExchangeRateError();
 
@@ -53,18 +88,66 @@ export default class SalesService {
             throw new TicketTypeNotSellableError('el período de venta ha finalizado');
         }
 
-        const unitPriceUSD =
-            ticketType.currency === 'VES' ? ticketType.price / rate.rate : ticketType.price;
-        const totalAmount = unitPriceUSD * data.quantity;
+        const baseCurrency = event.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
 
-        const paidUSD = sumPaymentsInUSD(
+        const unitPriceDivisa = ticketType.usdPrice;
+        const totalAmountDivisa = unitPriceDivisa * data.quantity;
+
+        const latestBcv = await this.bcvRateRepository.findLatest();
+        const activeRateNum = Number(rate.rate);
+        const eurRateNum = latestBcv?.eurRate ? Number(latestBcv.eurRate) : activeRateNum;
+        const usdRateNum = latestBcv?.usdRate ? Number(latestBcv.usdRate) : activeRateNum;
+
+        const paidDivisa = sumPaymentsInDivisa(
             data.payments.map((p) => ({
                 amount: p.amount,
                 currency: p.currency as 'USD' | 'VES' | 'EUR',
             })),
-            rate.rate,
+            baseCurrency,
+            activeRateNum,
+            eurRateNum,
+            usdRateNum,
         );
-        if (paidUSD < totalAmount) throw new InsufficientPaymentError(totalAmount, paidUSD);
+        if (paidDivisa < totalAmountDivisa)
+            throw new InsufficientPaymentError(totalAmountDivisa, paidDivisa);
+
+        const paymentsToRecord = data.payments.map((p) => ({
+            paymentMethodId: p.paymentMethodId,
+            amount: p.amount,
+            currency: p.currency,
+            reference: p.reference,
+            receiptUrl: p.receiptUrl,
+            verifiedById: soldById,
+        }));
+
+        if (paymentsToRecord.length > 0) {
+            const lastIndex = paymentsToRecord.length - 1;
+            const lastPayment = paymentsToRecord[lastIndex];
+
+            const sumPriorPaymentsDivisa = sumPaymentsInDivisa(
+                paymentsToRecord.slice(0, -1).map((p) => ({
+                    amount: p.amount,
+                    currency: p.currency as 'USD' | 'VES' | 'EUR',
+                })),
+                baseCurrency,
+                activeRateNum,
+                eurRateNum,
+                usdRateNum,
+            );
+
+            const neededLastPaymentDivisa = Math.max(0, totalAmountDivisa - sumPriorPaymentsDivisa);
+
+            const adjustedAmount = convertFromDivisa(
+                neededLastPaymentDivisa,
+                lastPayment.currency as 'USD' | 'VES' | 'EUR',
+                baseCurrency,
+                activeRateNum,
+                eurRateNum,
+                usdRateNum,
+            );
+
+            lastPayment.amount = Number(adjustedAmount.toFixed(2));
+        }
 
         const order = await this.txManager.runInTransaction(async (tx) => {
             const customer = await this.customerRepository.upsertByIdNumber(data.customer, tx);
@@ -82,20 +165,13 @@ export default class SalesService {
                     customerId: customer.id,
                     soldById,
                     exchangeRateId: rate.id,
-                    totalAmount,
+                    totalAmount: totalAmountDivisa,
                     ticketTypeId: data.ticketTypeId,
                     quantity: data.quantity,
-                    unitPrice: unitPriceUSD,
-                    itemCurrency: 'USD',
-                    subtotal: totalAmount,
-                    payments: data.payments.map((p) => ({
-                        paymentMethodId: p.paymentMethodId,
-                        amount: p.amount,
-                        currency: p.currency,
-                        reference: p.reference,
-                        receiptUrl: p.receiptUrl,
-                        verifiedById: soldById,
-                    })),
+                    unitPrice: unitPriceDivisa,
+                    itemCurrency: baseCurrency,
+                    subtotal: totalAmountDivisa,
+                    payments: paymentsToRecord,
                 },
                 tx,
             );

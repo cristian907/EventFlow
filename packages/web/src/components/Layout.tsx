@@ -63,7 +63,7 @@ const EVENT_NAV_ITEMS = (eventId: string): EventNavItem[] => [
         label: 'Dashboard del Evento',
         path: `/events/${eventId}/dashboard`,
         icon: faChartLine,
-        allowedRoles: ['ADMIN', 'ORGANIZER', 'COLLABORATOR', 'SCANNER'],
+        allowedRoles: ['ADMIN', 'ORGANIZER'],
     },
     {
         id: 'event-staff',
