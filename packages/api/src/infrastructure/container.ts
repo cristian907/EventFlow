@@ -2,18 +2,23 @@ import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAccessModule } from '../modules/access';
 import { createAuthModule } from '../modules/auth';
+import { createBotConfigModule } from '../modules/bot-config';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
+import { createInternalBotModule } from '../modules/internal-bot';
 import { createPaymentMethodsModule } from '../modules/payment-methods';
+import { createPublicEventsModule } from '../modules/public-events';
 import { createSalesModule } from '../modules/sales';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
 import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
 import { createUsersModule } from '../modules/users';
 
+import BotTokenCipher from './BotTokenCipher';
 import PrismaTransactionManager from './PrismaTransactionManager';
 import PrismaAccessLogRepository from './repositories/PrismaAccessLogRepository';
 import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
+import PrismaEventBotConfigRepository from './repositories/PrismaEventBotConfigRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
 import PrismaEventRepository from './repositories/PrismaEventRepository';
 import PrismaExchangeRateRepository from './repositories/PrismaExchangeRateRepository';
@@ -34,6 +39,7 @@ export const repositories = {
     order: new PrismaOrderRepository(prisma),
     ticket: new PrismaTicketRepository(prisma),
     accessLog: new PrismaAccessLogRepository(prisma),
+    eventBotConfig: new PrismaEventBotConfigRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
@@ -44,6 +50,13 @@ if (!ticketQrSecret) {
 }
 
 const cryptoService = new TicketCryptoService(ticketQrSecret);
+
+const botTokenEncryptionKey = process.env.BOT_TOKEN_ENCRYPTION_KEY;
+if (!botTokenEncryptionKey) {
+    throw new EnvironmentVariableError('BOT_TOKEN_ENCRYPTION_KEY');
+}
+
+const botTokenCipher = new BotTokenCipher(botTokenEncryptionKey);
 
 const { router: ticketsRouter, ticketsService } = createTicketsModule(
     repositories.ticket,
@@ -79,10 +92,17 @@ export const modules = {
         repositories.exchangeRate,
         ticketsService,
     ),
+    'events/:eventId/bot-config': createBotConfigModule(
+        repositories.eventBotConfig,
+        repositories.event,
+        botTokenCipher,
+    ),
+    'events/:eventId/public': createPublicEventsModule(repositories.event, repositories.ticketType),
     'events/:eventId': ticketsRouter,
     'events/:eventId/access': createAccessModule(
         repositories.ticket,
         repositories.accessLog,
         cryptoService,
     ),
+    'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
 };
