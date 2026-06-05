@@ -64,6 +64,26 @@ export default [
         rules: { ...sharedTsRules, ...nodeOnlyRules },
     },
 
+    // bot
+    {
+        files: ['packages/bot/**/*.ts'],
+        languageOptions: {
+            parser: tsparser,
+            parserOptions: {
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
+                tsconfigRootDir: __dirname,
+            },
+            globals: { ...globals.node },
+        },
+        plugins: {
+            '@typescript-eslint': tseslint,
+            'import-x': importX,
+        },
+        rules: { ...sharedTsRules, ...nodeOnlyRules },
+    },
+
     // shared
     {
         files: ['packages/shared/**/*.ts'],

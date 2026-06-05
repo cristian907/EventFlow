@@ -25,6 +25,7 @@ export default {
         'api',
         'web',
         'shared',
+        'bot',
         'auth',
         'db',
         'ui',
