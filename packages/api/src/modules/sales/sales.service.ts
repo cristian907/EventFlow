@@ -89,7 +89,6 @@ export default class SalesService {
         }
 
         const baseCurrency = event.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
-        const event = await this.eventRepository.findById(eventId);
 
         const unitPriceDivisa = ticketType.usdPrice;
         const totalAmountDivisa = unitPriceDivisa * data.quantity;

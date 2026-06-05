@@ -288,6 +288,9 @@ export class EventNotActiveError extends BusinessError {
                 status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
             }).`,
         );
+    }
+}
+
 export class InvalidBotTokenError extends BusinessError {
     public readonly name = 'InvalidBotTokenError';
     public readonly statusCode = 400;
