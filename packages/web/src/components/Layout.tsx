@@ -54,7 +54,14 @@ const NAV_ITEMS: NavItem[] = [
         group: 'administración',
         roleRequired: 'ADMIN',
     },
-    { id: 'config', label: 'Configuración', path: '/config', icon: faCog, group: 'administración' },
+    {
+        id: 'config',
+        label: 'Configuración',
+        path: '/config',
+        icon: faCog,
+        group: 'administración',
+        roleRequired: 'ADMIN',
+    },
 ];
 
 const EVENT_NAV_ITEMS = (eventId: string): EventNavItem[] => [

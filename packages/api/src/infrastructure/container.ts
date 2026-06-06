@@ -12,6 +12,7 @@ import { createInternalBotModule } from '../modules/internal-bot';
 import { createPaymentMethodsModule } from '../modules/payment-methods';
 import { createPublicEventsModule } from '../modules/public-events';
 import { createSalesModule } from '../modules/sales';
+import { createSettingsModule } from '../modules/settings';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
 import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
@@ -132,6 +133,7 @@ export const modules = {
     ),
     'events/:eventId/dashboard': createDashboardModule(repositories.dashboard),
     'admin/dashboard': createAdminDashboardModule(repositories.dashboard),
+    'admin/settings': createSettingsModule(prisma),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
     'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

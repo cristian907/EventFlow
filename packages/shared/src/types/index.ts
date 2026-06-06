@@ -10,3 +10,4 @@ export * from './access.types';
 export * from './bcv.types';
 export * from './dashboard.types';
 export * from './botConfig.types';
+export * from './settings.types';

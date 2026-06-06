@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
+import { settingsService } from '../../admin-config/services/settingsService';
 import { useAuth } from '../../auth/context/AuthContext';
 import { eventService } from '../services/eventService';
 
@@ -44,6 +45,20 @@ export function EventListPage() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [defaultRateSource, setDefaultRateSource] = useState<string>('CUSTOM');
+
+    // Fetch default rate source system setting
+    useEffect(() => {
+        const fetchDefaultRate = async () => {
+            try {
+                const settings = await settingsService.getSettings();
+                setDefaultRateSource(settings.defaultRateSource);
+            } catch (err) {
+                console.error('Error fetching default rate source setting:', err);
+            }
+        };
+        void fetchDefaultRate();
+    }, []);
 
     // Calendar States
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -109,8 +124,28 @@ export function EventListPage() {
             address: '',
             maxCapacity: 100,
             imageUrl: '',
+            rateSource: '' as 'CUSTOM',
         },
     });
+
+    // Reset/populate form when modal opens
+    useEffect(() => {
+        if (isCreateOpen) {
+            reset({
+                name: '',
+                description: '',
+                startDate: '',
+                endDate: '',
+                startTime: '',
+                endTime: '',
+                location: '',
+                address: '',
+                maxCapacity: 100,
+                imageUrl: '',
+                rateSource: (defaultRateSource === 'NONE' ? '' : defaultRateSource) as 'CUSTOM',
+            });
+        }
+    }, [isCreateOpen, defaultRateSource, reset]);
 
     const onSubmit = async (data: FieldValues) => {
         setIsSubmitting(true);
@@ -139,6 +174,7 @@ export function EventListPage() {
                 address: data.address as string,
                 maxCapacity: data.maxCapacity as number,
                 imageUrl: data.imageUrl as string,
+                rateSource: data.rateSource ? (data.rateSource as 'CUSTOM') : undefined,
             });
 
             setSuccessMessage('¡Evento creado con éxito!');
@@ -1094,6 +1130,42 @@ export function EventListPage() {
                                             }}
                                         >
                                             {errors.address.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Origen de Tasa de Cambio */}
+                                <div>
+                                    <label
+                                        className="text-small fw-600"
+                                        style={{ display: 'block', marginBottom: 4 }}
+                                    >
+                                        Origen de Tasa de Cambio *
+                                    </label>
+                                    <select
+                                        className="select"
+                                        style={{ width: '100%' }}
+                                        {...register('rateSource')}
+                                    >
+                                        <option value="">Seleccione una tasa...</option>
+                                        <option value="CUSTOM">
+                                            Tasa Manual (CUSTOM - Por Evento)
+                                        </option>
+                                        <option value="USD_BCV">Tasa Oficial USD (BCV)</option>
+                                        <option value="EUR_BCV">Tasa Oficial EUR (BCV)</option>
+                                        <option value="USDT_PARALELO">
+                                            Tasa Paralela (USDT / Paralelo)
+                                        </option>
+                                    </select>
+                                    {errors.rateSource && (
+                                        <p
+                                            style={{
+                                                color: 'var(--danger)',
+                                                fontSize: 11.5,
+                                                marginTop: 4,
+                                            }}
+                                        >
+                                            El origen de tasa cambiaria es obligatorio.
                                         </p>
                                     )}
                                 </div>

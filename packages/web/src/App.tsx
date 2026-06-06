@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 
 import { Layout } from './components/Layout';
+import { GeneralConfigPage } from './features/admin-config/pages/GeneralConfigPage';
 import { GlobalDashboardPage } from './features/admin-dashboard/pages/GlobalDashboardPage';
 import { AuthProvider, useAuth } from './features/auth/context/AuthContext';
 import { LoginPage } from './features/auth/pages/login';
@@ -81,17 +82,7 @@ const router = createBrowserRouter([
             },
             {
                 path: 'config',
-                element: (
-                    <div className="card elevated" style={{ padding: 24 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>
-                            Configuración
-                        </h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Panel de configuración general y ajuste de la tasa cambiaria de
-                            referencia de la plataforma.
-                        </p>
-                    </div>
-                ),
+                element: <GeneralConfigPage />,
             },
         ],
     },
