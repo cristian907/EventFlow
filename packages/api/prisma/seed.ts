@@ -514,8 +514,8 @@ async function seed(): Promise<void> {
             customerId: customer2.id,
             soldById: userCarlos.id,
             exchangeRateId: exchangeRate1.id,
-            currency: 'VES',
-            totalAmount: 6825.0,
+            currency: 'USD',
+            totalAmount: 150.0,
             createdAt: new Date('2026-06-03T14:00:00Z'),
         },
     });
@@ -617,8 +617,8 @@ async function seed(): Promise<void> {
             customerId: customer4.id,
             soldById: userCarlos.id,
             exchangeRateId: exchangeRate1.id,
-            currency: 'VES',
-            totalAmount: 7280.0,
+            currency: 'USD',
+            totalAmount: 160.0,
             createdAt: new Date('2026-06-05T12:00:00Z'),
         },
     });
