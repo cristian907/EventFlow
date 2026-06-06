@@ -11,14 +11,14 @@
         "start": "tsx src/index.ts",
         "clean": "rm -rf dist",
         "generate": "prisma generate",
-        "seed": "tsx prisma/seedUser.ts",
+        "seed": "tsx prisma/seed.ts",
         "type-check": "tsc --noEmit",
         "lint": "eslint .",
         "format": "prettier --write .",
         "format:check": "prettier --check ."
     },
     "prisma": {
-        "seed": "tsx prisma/seedUser.ts"
+        "seed": "tsx prisma/seed.ts"
     },
     "dependencies": {
         "@eventflow/shared": "workspace:*",
