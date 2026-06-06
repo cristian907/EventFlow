@@ -28,6 +28,7 @@ const seedUsersData = [
         phoneNumber: '+1234567890',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'light',
     },
     {
         fullName: 'Sofia Rodriguez',
@@ -35,6 +36,7 @@ const seedUsersData = [
         phoneNumber: '+1987654321',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'dark',
     },
     {
         fullName: 'Carlos Mendoza',
@@ -42,6 +44,7 @@ const seedUsersData = [
         phoneNumber: '+1555019283',
         role: 'USER' as const,
         password: 'password1234',
+        theme: 'system',
     },
     {
         fullName: 'Ana Gomez',
@@ -114,6 +117,7 @@ async function cleanDatabase(): Promise<void> {
     await prisma.user.deleteMany({});
 
     await prisma.bcvRate.deleteMany({});
+    await prisma.systemSetting.deleteMany({});
     console.log('Database cleaned successfully!');
 }
 
@@ -122,6 +126,15 @@ async function seed(): Promise<void> {
     await cleanDatabase();
 
     console.log('Starting seed process...');
+
+    // 1.5 Seed System Settings
+    console.log('Seeding system settings...');
+    await prisma.systemSetting.create({
+        data: {
+            key: 'defaultRateSource',
+            value: 'CUSTOM',
+        },
+    });
 
     // 2. Seed Users
     const users: Record<string, User> = {};
@@ -135,6 +148,7 @@ async function seed(): Promise<void> {
                 passwordHash,
                 phoneNumber: userData.phoneNumber,
                 role: userData.role,
+                theme: userData.theme,
             },
         });
         users[userData.email] = user;

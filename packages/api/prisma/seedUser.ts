@@ -32,6 +32,7 @@ const seedUsersData = [
         phoneNumber: '+1234567890',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'light',
     },
     {
         fullName: 'Sofia Rodriguez',
@@ -39,6 +40,7 @@ const seedUsersData = [
         phoneNumber: '+1987654321',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'dark',
     },
     {
         fullName: 'Carlos Mendoza',
@@ -46,6 +48,7 @@ const seedUsersData = [
         phoneNumber: '+1555019283',
         role: 'USER' as const,
         password: 'password1234',
+        theme: 'system',
     },
     {
         fullName: 'Ana Gomez',
@@ -111,6 +114,7 @@ async function seed(): Promise<void> {
                 phoneNumber: userData.phoneNumber,
                 role: userData.role,
                 passwordHash,
+                theme: userData.theme,
             },
             create: {
                 fullName: userData.fullName,
@@ -118,6 +122,7 @@ async function seed(): Promise<void> {
                 passwordHash,
                 phoneNumber: userData.phoneNumber,
                 role: userData.role,
+                theme: userData.theme,
             },
         });
 
