@@ -114,3 +114,34 @@ export interface EventDashboardSummary {
     inventory: EventDashboardInventory;
     attendance: EventDashboardAttendance;
 }
+
+export interface GlobalDashboardKpis {
+    totalRevenueUSD: number;
+    totalTicketsSold: number;
+    globalOccupationPercentage: number;
+    globalAttendancePercentage: number;
+    eventsCreatedCount: number;
+    eventsActiveCount: number;
+    eventsCancelledCount: number;
+}
+
+export interface GlobalEventSummary {
+    id: string;
+    name: string;
+    status: EventStatus;
+    revenueUSD: number;
+    ticketsSold: number;
+    capacity: number;
+    attendancePercentage: number;
+}
+
+export interface GlobalDashboardSummary {
+    kpis: GlobalDashboardKpis;
+    eventSummaries: {
+        items: GlobalEventSummary[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}

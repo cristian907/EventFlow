@@ -1,6 +1,7 @@
 import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAccessModule } from '../modules/access';
+import { createAdminDashboardModule } from '../modules/admin-dashboard';
 import { createAuthModule } from '../modules/auth';
 import { createBcvModule } from '../modules/bcv';
 import { createBotConfigModule } from '../modules/bot-config';
@@ -130,6 +131,7 @@ export const modules = {
         repositories.event,
     ),
     'events/:eventId/dashboard': createDashboardModule(repositories.dashboard),
+    'admin/dashboard': createAdminDashboardModule(repositories.dashboard),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
     'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

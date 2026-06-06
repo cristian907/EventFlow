@@ -73,8 +73,7 @@ export function createBotInstance(botConfig: InternalBotConfig, deps: BotDepende
             });
             try {
                 await ctx.reply(ERROR_MESSAGE);
-            } catch {
-            }
+            } catch {}
         }
     });
 

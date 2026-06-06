@@ -14,13 +14,13 @@ export const ticketService = {
         const response = await api.get(`/events/${eventId}/tickets/${ticketId}/download`, {
             responseType: 'blob',
         });
-const url = window.URL.createObjectURL(response.data as Blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = `ticket-${ticketId.slice(0, 8)}.png`;
-document.body.appendChild(a);
-a.click();
-a.remove();
-setTimeout(() => window.URL.revokeObjectURL(url), 0);
+        const url = window.URL.createObjectURL(response.data as Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ticket-${ticketId.slice(0, 8)}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 0);
     },
 };

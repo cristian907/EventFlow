@@ -94,7 +94,10 @@ export default class GeminiAgent {
                 }
                 case 'getAvailability': {
                     const ticketTypeId = await this.resolveTicketTypeId(eventId, args);
-                    const availability = await this.apiClient.getAvailability(eventId, ticketTypeId);
+                    const availability = await this.apiClient.getAvailability(
+                        eventId,
+                        ticketTypeId,
+                    );
                     return { response: { availability } };
                 }
                 case 'requestSalesHandoff': {
@@ -151,7 +154,10 @@ export default class GeminiAgent {
         const url = buildWhatsappHandoffUrl(botConfig.salesWhatsappNumber, event.name, items);
 
         return {
-            response: { ok: true, message: 'Enlace de WhatsApp generado para continuar la compra.' },
+            response: {
+                ok: true,
+                message: 'Enlace de WhatsApp generado para continuar la compra.',
+            },
             handoffUrl: url,
         };
     }
