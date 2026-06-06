@@ -16,6 +16,7 @@ import { EventStaffPage } from './features/events/pages/EventStaffPage';
 import SalesPage from './features/events/pages/SalesPage';
 import { TicketTypesPage } from './features/events/pages/TicketTypesPage';
 import { AdminUsersPage } from './features/users/pages/AdminUsersPage';
+import { UserSettingsPage } from './features/users/pages/UserSettingsPage';
 
 function DashboardRoute(): JSX.Element {
     const { user } = useAuth();
@@ -83,6 +84,10 @@ const router = createBrowserRouter([
             {
                 path: 'config',
                 element: <GeneralConfigPage />,
+            },
+            {
+                path: 'settings',
+                element: <UserSettingsPage />,
             },
         ],
     },

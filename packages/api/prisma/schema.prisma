@@ -20,6 +20,7 @@ model User {
   phoneNumber String
   role UserRole @default(USER)
   isActive Boolean @default(true)
+  theme String @default("light")
   eventsOrganized Event[]
   eventMembers EventMember[]
   usersCreated User[] @relation("UserCreatedBy")

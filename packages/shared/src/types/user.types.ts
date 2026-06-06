@@ -9,6 +9,7 @@ export type UserType = {
     phoneNumber: string;
     role: UserRole;
     isActive: boolean;
+    theme?: 'light' | 'dark' | 'system';
     createdAt: Date;
     updatedAt: Date;
 };

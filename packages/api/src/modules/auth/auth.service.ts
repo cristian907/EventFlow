@@ -62,4 +62,13 @@ export default class AuthService {
         }
         return AuthMapper.toUserType(user);
     }
+
+    public async updateUserTheme(userId: string, theme: string): Promise<UserType> {
+        const user = await this.userRepository.findById(userId);
+        if (!user || !user.isActive) {
+            throw new InvalidCredentialsError();
+        }
+        const updatedUser = await this.userRepository.updateTheme(userId, theme);
+        return AuthMapper.toUserType(updatedUser);
+    }
 }
