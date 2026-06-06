@@ -163,11 +163,16 @@ export default class PrismaEventRepository implements IEventRepository {
             imageUrl?: string;
             rateSource?: string;
             autoSyncBcv?: boolean;
+            status?: EventStatus;
         },
     ): Promise<Event> {
+        const updateData: Prisma.EventUpdateInput = {
+            ...data,
+            status: data.status ? toPrismaStatus(data.status) : undefined,
+        };
         const updated = await this.prismaClient.event.update({
             where: { id },
-            data,
+            data: updateData,
         });
         return this.mapToEventEntity(updated);
     }

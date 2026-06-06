@@ -63,12 +63,21 @@ export function EventDetailPage() {
 
     // Redirect to sub-dashboard if matching root /events/:eventId exactly
     useEffect(() => {
-        if (!eventId) return;
+        if (!eventId || !eventRole) return;
         const currentPath = location.pathname.replace(/\/$/, '');
         if (currentPath === `/events/${eventId}`) {
-            void navigate(`/events/${eventId}/dashboard`, { replace: true });
+            const role = eventRole.toUpperCase();
+            if (role === 'ADMIN' || role === 'ORGANIZER') {
+                void navigate(`/events/${eventId}/dashboard`, { replace: true });
+            } else if (role === 'COLLABORATOR') {
+                void navigate(`/events/${eventId}/sales`, { replace: true });
+            } else if (role === 'SCANNER') {
+                void navigate(`/events/${eventId}/door-check`, { replace: true });
+            } else {
+                void navigate('/events', { replace: true });
+            }
         }
-    }, [eventId, location.pathname, navigate]);
+    }, [eventId, eventRole, location.pathname, navigate]);
 
     // Frontend nested route guard / permission protection
     useEffect(() => {
@@ -77,6 +86,7 @@ export function EventDetailPage() {
         const path = location.pathname;
         const role = eventRole.toUpperCase();
 
+        const isDashboardPath = path.endsWith('/dashboard');
         const isStaffPath = path.endsWith('/staff');
         const isTicketsPath = path.endsWith('/tickets');
         const isConfigPath = path.endsWith('/config');
@@ -85,19 +95,30 @@ export function EventDetailPage() {
 
         const isAdminOrOrganizer = role === 'ADMIN' || role === 'ORGANIZER';
 
-        // Staff / Tickets / Config require ADMIN/ORGANIZER
-        if ((isStaffPath || isTicketsPath || isConfigPath) && !isAdminOrOrganizer) {
-            void navigate(`/events/${eventId}/dashboard`, { replace: true });
+        const getDefaultPageForRole = (roleStr: string) => {
+            const r = roleStr.toUpperCase();
+            if (r === 'ADMIN' || r === 'ORGANIZER') return `/events/${eventId}/dashboard`;
+            if (r === 'COLLABORATOR') return `/events/${eventId}/sales`;
+            if (r === 'SCANNER') return `/events/${eventId}/door-check`;
+            return '/events';
+        };
+
+        // Staff / Tickets / Config / Dashboard require ADMIN/ORGANIZER
+        if (
+            (isDashboardPath || isStaffPath || isTicketsPath || isConfigPath) &&
+            !isAdminOrOrganizer
+        ) {
+            void navigate(getDefaultPageForRole(role), { replace: true });
         }
 
         // Sales requires ADMIN/ORGANIZER/COLLABORATOR
         if (isSalesPath && !isAdminOrOrganizer && role !== 'COLLABORATOR') {
-            void navigate(`/events/${eventId}/dashboard`, { replace: true });
+            void navigate(getDefaultPageForRole(role), { replace: true });
         }
 
         // Door check requires ADMIN/ORGANIZER/SCANNER
         if (isDoorCheckPath && !isAdminOrOrganizer && role !== 'SCANNER') {
-            void navigate(`/events/${eventId}/dashboard`, { replace: true });
+            void navigate(getDefaultPageForRole(role), { replace: true });
         }
     }, [location.pathname, eventRole, eventId, navigate]);
 

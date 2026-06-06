@@ -4,6 +4,7 @@ import { createAccessModule } from '../modules/access';
 import { createAuthModule } from '../modules/auth';
 import { createBcvModule } from '../modules/bcv';
 import { createBotConfigModule } from '../modules/bot-config';
+import { createDashboardModule } from '../modules/dashboard';
 import { createEventsModule } from '../modules/events';
 import { createExchangeRatesModule } from '../modules/exchange-rates';
 import { createInternalBotModule } from '../modules/internal-bot';
@@ -21,6 +22,7 @@ import PrismaTransactionManager from './PrismaTransactionManager';
 import PrismaAccessLogRepository from './repositories/PrismaAccessLogRepository';
 import PrismaBcvRateRepository from './repositories/PrismaBcvRateRepository';
 import PrismaCustomerRepository from './repositories/PrismaCustomerRepository';
+import PrismaDashboardRepository from './repositories/PrismaDashboardRepository';
 import PrismaEventBotConfigRepository from './repositories/PrismaEventBotConfigRepository';
 import PrismaEventMemberRepository from './repositories/PrismaEventMemberRepository';
 import PrismaEventRepository from './repositories/PrismaEventRepository';
@@ -42,8 +44,9 @@ export const repositories = {
     order: new PrismaOrderRepository(prisma),
     ticket: new PrismaTicketRepository(prisma),
     accessLog: new PrismaAccessLogRepository(prisma),
-    eventBotConfig: new PrismaEventBotConfigRepository(prisma),
     bcvRate: new PrismaBcvRateRepository(prisma),
+    dashboard: new PrismaDashboardRepository(prisma),
+    eventBotConfig: new PrismaEventBotConfigRepository(prisma),
 };
 
 const txManager = new PrismaTransactionManager(prisma);
@@ -124,7 +127,9 @@ export const modules = {
         repositories.ticket,
         repositories.accessLog,
         cryptoService,
+        repositories.event,
     ),
+    'events/:eventId/dashboard': createDashboardModule(repositories.dashboard),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
     'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

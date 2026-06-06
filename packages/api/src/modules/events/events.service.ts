@@ -149,6 +149,15 @@ export default class EventsService {
             payload.autoSyncBcv = data.rateSource !== 'CUSTOM';
         }
 
+        if (data.status !== undefined) {
+            let statusEnum: EventStatus;
+            if (data.status === 'DRAFT') statusEnum = EventStatus.Draft;
+            else if (data.status === 'ACTIVE') statusEnum = EventStatus.Active;
+            else if (data.status === 'CANCELLED') statusEnum = EventStatus.Cancelled;
+            else throw new Error(`Invalid status: ${data.status}`);
+            payload.status = statusEnum;
+        }
+
         const updated = await this.eventRepository.update(eventId, payload);
 
         if (payload.rateSource === 'CUSTOM') {

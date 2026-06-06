@@ -141,6 +141,7 @@ export const EventToUpdateSchema = z
         imageUrl: z.string().optional().or(z.literal('')),
         autoSyncBcv: z.boolean().optional(),
         rateSource: z.enum(['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM']).optional(),
+        status: z.enum(['DRAFT', 'ACTIVE', 'CANCELLED']).optional(),
     })
     .refine(
         (data) => {

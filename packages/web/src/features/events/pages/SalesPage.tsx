@@ -23,13 +23,16 @@ import {
     faSearch,
     faDownload,
     faTicket,
+    faLock,
+    faBan,
+    faCog,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Resolver } from 'react-hook-form';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
 import { useEvent } from '../context/EventContext';
 import { bcvService } from '../services/bcvService';
@@ -529,10 +532,15 @@ function NewSaleModal({
         if (currentEvent?.rateSource === 'CUSTOM') return exchangeRate || 0;
         if (currentEvent?.rateSource === 'USDT_PARALELO')
             return bcvRates?.usdtRate || exchangeRate || 0;
+        if (currentEvent?.rateSource === 'EUR_BCV')
+            return bcvRates?.usdRate || (exchangeRate ? exchangeRate / 1.08 : 0);
         return bcvRates?.usdRate || exchangeRate || 0;
     })();
 
-    const eurToVesRate = bcvRates?.eurRate || usdToVesRate * 1.08;
+    const eurToVesRate = (() => {
+        if (currentEvent?.rateSource === 'EUR_BCV') return bcvRates?.eurRate || exchangeRate || 0;
+        return bcvRates?.eurRate || usdToVesRate * 1.08;
+    })();
 
     const selectedTicketType = ticketTypes.find((tt) => tt.id === watchTicketTypeId);
 
@@ -1607,6 +1615,26 @@ function NewSaleModal({
                                     Agregar pago
                                 </button>
 
+                                {paidUSD < subtotalUSD && subtotalUSD > 0 && (
+                                    <div
+                                        style={{
+                                            padding: '0.75rem 1rem',
+                                            background: 'var(--danger-light)',
+                                            borderRadius: 8,
+                                            color: 'var(--danger)',
+                                            fontSize: '0.875rem',
+                                        }}
+                                    >
+                                        <FontAwesomeIcon
+                                            icon={faExclamationTriangle}
+                                            style={{ marginRight: '0.5rem' }}
+                                        />
+                                        El pago está incompleto. Faltan {baseSymbol}{' '}
+                                        {remainingUSD.toFixed(2)} ({fmtVES(remainingVES)}) para
+                                        completar la venta.
+                                    </div>
+                                )}
+
                                 {submitError && (
                                     <div
                                         style={{
@@ -1719,7 +1747,7 @@ function NewSaleModal({
 /* ─── Main page ─── */
 export default function SalesPage() {
     const { eventId } = useParams<{ eventId: string }>();
-    const { currentEvent } = useEvent();
+    const { currentEvent, eventRole } = useEvent();
 
     const [state, dispatch] = useReducer(listReducer, {
         orders: [],
@@ -1757,8 +1785,10 @@ export default function SalesPage() {
     );
 
     useEffect(() => {
-        void loadOrders(1);
-    }, [loadOrders]);
+        if (currentEvent?.status === 'ACTIVE') {
+            void loadOrders(1);
+        }
+    }, [loadOrders, currentEvent?.status]);
 
     async function handleRowClick(orderId: string) {
         if (!eventId) return;
@@ -1775,8 +1805,111 @@ export default function SalesPage() {
 
     const totalPages = Math.ceil(state.total / LIMIT);
 
+    if (currentEvent?.status !== 'ACTIVE') {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '60vh',
+                    padding: '2rem',
+                }}
+            >
+                <div
+                    style={{
+                        background: 'var(--bg-elevated)',
+                        padding: '3rem 2rem',
+                        borderRadius: 'var(--r-lg)',
+                        boxShadow: 'var(--shadow-lg)',
+                        border: '1px solid var(--border)',
+                        maxWidth: 480,
+                        width: '95%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '1.5rem',
+                        textAlign: 'center',
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: '50%',
+                            background:
+                                currentEvent?.status === 'CANCELLED'
+                                    ? 'var(--danger-light)'
+                                    : 'var(--primary-light)',
+                            color:
+                                currentEvent?.status === 'CANCELLED'
+                                    ? 'var(--danger)'
+                                    : 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <FontAwesomeIcon
+                            icon={currentEvent?.status === 'CANCELLED' ? faBan : faLock}
+                            size="2x"
+                        />
+                    </div>
+                    <div>
+                        <h3
+                            style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 700,
+                                margin: '0 0 0.5rem',
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            Módulo Inactivo
+                        </h3>
+                        <p
+                            style={{
+                                fontSize: '0.925rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.5,
+                                margin: 0,
+                            }}
+                        >
+                            {currentEvent?.status === 'CANCELLED'
+                                ? 'Este evento ha sido CANCELADO. Las operaciones de taquilla y validación de accesos se encuentran suspendidas permanentemente.'
+                                : 'Este evento se encuentra en estado BORRADOR. Debes publicar/activar el evento desde los ajustes generales para habilitar la taquilla y validación en puerta.'}
+                        </p>
+                    </div>
+                    {currentEvent?.status === 'DRAFT' &&
+                        (eventRole?.toUpperCase() === 'ADMIN' ||
+                            eventRole?.toUpperCase() === 'ORGANIZER') && (
+                            <Link
+                                to={`/events/${eventId}/config`}
+                                className="btn btn-primary"
+                                style={{
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faCog} /> Ir a Ajustes del Evento
+                            </Link>
+                        )}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ padding: '1.5rem', maxWidth: 1100, margin: '0 auto' }}>
+        <div
+            style={{
+                padding: '1.5rem',
+                maxWidth: 1100,
+                margin: '0 auto',
+                position: 'relative',
+                minHeight: '400px',
+            }}
+        >
             {/* Header */}
             <div
                 style={{

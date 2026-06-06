@@ -42,6 +42,7 @@ export default interface IEventRepository {
             imageUrl?: string;
             rateSource?: string;
             autoSyncBcv?: boolean;
+            status?: EventStatus;
         },
     ): Promise<Event>;
 

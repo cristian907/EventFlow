@@ -278,6 +278,19 @@ export class TicketEventMismatchError extends BusinessError {
     }
 }
 
+export class EventNotActiveError extends BusinessError {
+    public readonly name = 'EventNotActiveError';
+    public readonly statusCode = 400;
+
+    constructor(status: string) {
+        super(
+            `El evento no está activo (su estado actual es ${
+                status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
+            }).`,
+        );
+    }
+}
+
 export class InvalidBotTokenError extends BusinessError {
     public readonly name = 'InvalidBotTokenError';
     public readonly statusCode = 400;

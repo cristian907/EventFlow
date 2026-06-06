@@ -4,8 +4,11 @@ import {
     AccessVerifyResponse,
 } from '@eventflow/shared';
 
+import { EventNotActiveError, EventNotFoundError } from '../../core/errors/BusinessErrors';
 import IAccessLogRepository from '../../core/interfaces/repositories/IAccessLogRepository';
+import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import ITicketRepository from '../../core/interfaces/repositories/ITicketRepository';
+import { eventCheckInEmitter } from '../../infrastructure/EventCheckInEmitter';
 import TicketCryptoService from '../tickets/ticket-crypto.service';
 
 import AccessMapper from './access.mapper';
@@ -15,6 +18,7 @@ export default class AccessService {
         private readonly ticketRepository: ITicketRepository,
         private readonly accessLogRepository: IAccessLogRepository,
         private readonly cryptoService: TicketCryptoService,
+        private readonly eventRepository: IEventRepository,
     ) {}
 
     async scanQr(
@@ -22,6 +26,18 @@ export default class AccessService {
         qrDataBase64: string,
         scannedById: string,
     ): Promise<AccessVerifyResponse> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) {
+            return { result: 'invalid', message: 'Evento no encontrado.' };
+        }
+        if (event.status !== 'ACTIVE') {
+            return {
+                result: 'invalid',
+                message: `Validación desactivada. El evento no está activo (su estado actual es ${
+                    event.status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
+                }).`,
+            };
+        }
         let decoded: {
             payload: { qrCode: string; eventId: string; ticketTypeId: string };
             signature: string;
@@ -69,6 +85,20 @@ export default class AccessService {
                 result: 'VALID',
                 method: 'QR',
             });
+
+            const newTotalAttendance = await this.ticketRepository.countUsedByEvent(eventId);
+            eventCheckInEmitter.publishCheckIn(eventId, {
+                ticketId: ticket.id,
+                ticketTypeName: ticket.ticketTypeName,
+                customerName: ticket.customerName,
+                usedAt: ticket.usedAt
+                    ? typeof ticket.usedAt === 'string'
+                        ? ticket.usedAt
+                        : ticket.usedAt.toISOString()
+                    : new Date().toISOString(),
+                newTotalAttendance,
+            });
+
             return {
                 result: 'valid',
                 ticket: AccessMapper.toTicketInfo(ticket),
@@ -80,6 +110,11 @@ export default class AccessService {
     }
 
     async searchByIdNumber(eventId: string, idNumber: string): Promise<AccessSearchResponse> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) throw new EventNotFoundError(eventId);
+        if (event.status !== 'ACTIVE') {
+            throw new EventNotActiveError(event.status);
+        }
         const tickets = await this.ticketRepository.findByCustomerIdNumberAndEvent(
             eventId,
             idNumber,
@@ -104,6 +139,18 @@ export default class AccessService {
         ticketId: string,
         scannedById: string,
     ): Promise<AccessVerifyResponse> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) {
+            return { result: 'invalid', message: 'Evento no encontrado.' };
+        }
+        if (event.status !== 'ACTIVE') {
+            return {
+                result: 'invalid',
+                message: `Validación desactivada. El evento no está activo (su estado actual es ${
+                    event.status === 'DRAFT' ? 'BORRADOR' : 'CANCELADO'
+                }).`,
+            };
+        }
         const ticket = await this.ticketRepository.markAsUsedById(eventId, ticketId);
         if (ticket) {
             await this.accessLogRepository.create({
@@ -113,6 +160,20 @@ export default class AccessService {
                 result: 'VALID',
                 method: 'MANUAL',
             });
+
+            const newTotalAttendance = await this.ticketRepository.countUsedByEvent(eventId);
+            eventCheckInEmitter.publishCheckIn(eventId, {
+                ticketId: ticket.id,
+                ticketTypeName: ticket.ticketTypeName,
+                customerName: ticket.customerName,
+                usedAt: ticket.usedAt
+                    ? typeof ticket.usedAt === 'string'
+                        ? ticket.usedAt
+                        : ticket.usedAt.toISOString()
+                    : new Date().toISOString(),
+                newTotalAttendance,
+            });
+
             return {
                 result: 'valid',
                 ticket: AccessMapper.toTicketInfo(ticket),

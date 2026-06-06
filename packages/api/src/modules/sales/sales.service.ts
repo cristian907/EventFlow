@@ -12,6 +12,8 @@ import {
     OrderNotFoundError,
     TicketTypeNotFoundError,
     TicketTypeNotSellableError,
+    EventNotActiveError,
+    EventNotFoundError,
 } from '../../core/errors/BusinessErrors';
 import ITransactionManager from '../../core/interfaces/ITransactionManager';
 import IBcvRateRepository from '../../core/interfaces/repositories/IBcvRateRepository';
@@ -25,6 +27,25 @@ import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTyp
 import TicketsService from '../tickets/tickets.service';
 
 import SalesMapper from './sales.mapper';
+
+function convertFromDivisa(
+    amountDivisa: number,
+    targetCurrency: 'USD' | 'VES' | 'EUR',
+    baseCurrency: 'USD' | 'EUR',
+    activeRate: number,
+    eurRate: number,
+    usdRate: number,
+): number {
+    if (targetCurrency === baseCurrency) {
+        return amountDivisa;
+    }
+    if (targetCurrency === 'VES') {
+        return amountDivisa * activeRate;
+    }
+    const targetRate = targetCurrency === 'EUR' ? eurRate : usdRate;
+    if (targetRate === 0) return 0;
+    return (amountDivisa * activeRate) / targetRate;
+}
 
 export default class SalesService {
     constructor(
@@ -43,6 +64,12 @@ export default class SalesService {
         soldById: string,
         data: SaleToCreateType,
     ): Promise<OrderDetailType> {
+        const event = await this.eventRepository.findById(eventId);
+        if (!event) throw new EventNotFoundError(eventId);
+        if (event.status !== 'ACTIVE') {
+            throw new EventNotActiveError(event.status);
+        }
+
         const rate = await this.exchangeRateRepository.findCurrentByEventId(eventId);
         if (!rate) throw new NoActiveExchangeRateError();
 
@@ -61,16 +88,29 @@ export default class SalesService {
             throw new TicketTypeNotSellableError('el período de venta ha finalizado');
         }
 
-        const event = await this.eventRepository.findById(eventId);
-        const baseCurrency = event?.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
+        const baseCurrency = event.rateSource === 'EUR_BCV' ? 'EUR' : 'USD';
 
         const unitPriceDivisa = ticketType.usdPrice;
         const totalAmountDivisa = unitPriceDivisa * data.quantity;
 
         const latestBcv = await this.bcvRateRepository.findLatest();
         const activeRateNum = Number(rate.rate);
-        const eurRateNum = latestBcv?.eurRate ? Number(latestBcv.eurRate) : activeRateNum;
-        const usdRateNum = latestBcv?.usdRate ? Number(latestBcv.usdRate) : activeRateNum;
+
+        let eurRateNum: number;
+        let usdRateNum: number;
+
+        if (latestBcv) {
+            eurRateNum = Number(latestBcv.eurRate);
+            usdRateNum = Number(latestBcv.usdRate);
+        } else {
+            if (event.rateSource === 'EUR_BCV') {
+                eurRateNum = activeRateNum;
+                usdRateNum = activeRateNum / 1.08;
+            } else {
+                usdRateNum = activeRateNum;
+                eurRateNum = activeRateNum * 1.08;
+            }
+        }
 
         const paidDivisa = sumPaymentsInDivisa(
             data.payments.map((p) => ({
@@ -84,6 +124,44 @@ export default class SalesService {
         );
         if (paidDivisa < totalAmountDivisa)
             throw new InsufficientPaymentError(totalAmountDivisa, paidDivisa);
+
+        const paymentsToRecord = data.payments.map((p) => ({
+            paymentMethodId: p.paymentMethodId,
+            amount: p.amount,
+            currency: p.currency,
+            reference: p.reference,
+            receiptUrl: p.receiptUrl,
+            verifiedById: soldById,
+        }));
+
+        if (paymentsToRecord.length > 0) {
+            const lastIndex = paymentsToRecord.length - 1;
+            const lastPayment = paymentsToRecord[lastIndex];
+
+            const sumPriorPaymentsDivisa = sumPaymentsInDivisa(
+                paymentsToRecord.slice(0, -1).map((p) => ({
+                    amount: p.amount,
+                    currency: p.currency as 'USD' | 'VES' | 'EUR',
+                })),
+                baseCurrency,
+                activeRateNum,
+                eurRateNum,
+                usdRateNum,
+            );
+
+            const neededLastPaymentDivisa = Math.max(0, totalAmountDivisa - sumPriorPaymentsDivisa);
+
+            const adjustedAmount = convertFromDivisa(
+                neededLastPaymentDivisa,
+                lastPayment.currency as 'USD' | 'VES' | 'EUR',
+                baseCurrency,
+                activeRateNum,
+                eurRateNum,
+                usdRateNum,
+            );
+
+            lastPayment.amount = Number(adjustedAmount.toFixed(2));
+        }
 
         const order = await this.txManager.runInTransaction(async (tx) => {
             const customer = await this.customerRepository.upsertByIdNumber(data.customer, tx);
@@ -107,14 +185,7 @@ export default class SalesService {
                     unitPrice: unitPriceDivisa,
                     itemCurrency: baseCurrency,
                     subtotal: totalAmountDivisa,
-                    payments: data.payments.map((p) => ({
-                        paymentMethodId: p.paymentMethodId,
-                        amount: p.amount,
-                        currency: p.currency,
-                        reference: p.reference,
-                        receiptUrl: p.receiptUrl,
-                        verifiedById: soldById,
-                    })),
+                    payments: paymentsToRecord,
                 },
                 tx,
             );

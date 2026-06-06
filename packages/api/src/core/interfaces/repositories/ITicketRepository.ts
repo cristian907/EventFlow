@@ -20,4 +20,5 @@ export default interface ITicketRepository {
     findByQrCode(qrCode: string): Promise<Ticket | null>;
     findByCustomerIdNumberAndEvent(eventId: string, idNumber: string): Promise<Ticket[]>;
     markAsUsedById(eventId: string, ticketId: string): Promise<Ticket | null>;
+    countUsedByEvent(eventId: string): Promise<number>;
 }

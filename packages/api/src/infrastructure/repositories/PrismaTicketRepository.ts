@@ -142,4 +142,10 @@ export default class PrismaTicketRepository implements ITicketRepository {
         });
         return record ? mapToEntity(record as unknown as TicketWithRelations) : null;
     }
+
+    async countUsedByEvent(eventId: string): Promise<number> {
+        return this.prisma.ticket.count({
+            where: { eventId, status: 'USED' },
+        });
+    }
 }
