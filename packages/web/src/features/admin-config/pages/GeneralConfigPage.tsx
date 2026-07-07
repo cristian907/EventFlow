@@ -216,9 +216,9 @@ export function GeneralConfigPage() {
                     <p className="field-hint" style={{ marginTop: 8, lineHeight: 1.5 }}>
                         Define el comportamiento de tasa de cambio al crear un nuevo evento.
                         <br />
-                        Si seleccionas **Sin predeterminar**, el formulario de creación de eventos
-                        obligará al administrador a seleccionar una opción explícitamente en lugar
-                        de autocompletarla.
+                        Si seleccionas <strong>Sin predeterminar</strong>, el formulario de creación
+                        de eventos obligará al administrador a seleccionar una opción explícitamente
+                        en lugar de autocompletarla.
                     </p>
                 </div>
 

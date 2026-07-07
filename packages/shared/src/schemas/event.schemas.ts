@@ -60,7 +60,7 @@ export const EventToCreateSchema = z
         ),
         imageUrl: z.string().optional().or(z.literal('')),
         autoSyncBcv: z.boolean().default(false).optional(),
-        rateSource: z.enum(['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM']).optional(),
+        rateSource: z.enum(['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM', '']).optional(),
     })
     .refine(
         (data) => {

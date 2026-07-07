@@ -41,12 +41,16 @@ export default class EventsService {
         const systemSetting = await prisma.systemSetting.findUnique({
             where: { key: 'defaultRateSource' },
         });
-        const defaultRate = (systemSetting?.value || 'CUSTOM') as
-            | 'USD_BCV'
-            | 'EUR_BCV'
-            | 'USDT_PARALELO'
-            | 'CUSTOM'
-            | 'NONE';
+        const allowedRates = ['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM', 'NONE'];
+        const defaultRate =
+            systemSetting?.value && allowedRates.includes(systemSetting.value)
+                ? (systemSetting.value as
+                      | 'USD_BCV'
+                      | 'EUR_BCV'
+                      | 'USDT_PARALELO'
+                      | 'CUSTOM'
+                      | 'NONE')
+                : 'CUSTOM';
 
         let rateSource = eventData.rateSource;
         if (!rateSource) {

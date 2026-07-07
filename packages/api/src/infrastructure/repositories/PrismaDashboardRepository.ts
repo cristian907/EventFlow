@@ -494,6 +494,8 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
             const amount = og._sum.totalAmount ? Number(og._sum.totalAmount) : 0;
             if (og.currency === 'EUR') {
                 totalRevenueUSD += amount * eurUsdRatio;
+            } else if (og.currency === 'VES') {
+                totalRevenueUSD += bcvUsdRate > 0 ? amount / bcvUsdRate : amount / 36;
             } else {
                 totalRevenueUSD += amount;
             }
@@ -593,7 +595,14 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
         const revenueMap = new Map<string, number>();
         for (const eos of eventOrderSums) {
             const amount = eos._sum.totalAmount ? Number(eos._sum.totalAmount) : 0;
-            const usdVal = eos.currency === 'EUR' ? amount * eurUsdRatio : amount;
+            let usdVal = 0;
+            if (eos.currency === 'EUR') {
+                usdVal = amount * eurUsdRatio;
+            } else if (eos.currency === 'VES') {
+                usdVal = bcvUsdRate > 0 ? amount / bcvUsdRate : amount / 36;
+            } else {
+                usdVal = amount;
+            }
             revenueMap.set(eos.eventId, (revenueMap.get(eos.eventId) || 0) + usdVal);
         }
 

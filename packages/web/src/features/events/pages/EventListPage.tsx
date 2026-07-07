@@ -45,7 +45,9 @@ export function EventListPage() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [defaultRateSource, setDefaultRateSource] = useState<string>('CUSTOM');
+    const [defaultRateSource, setDefaultRateSource] = useState<
+        'USD_BCV' | 'EUR_BCV' | 'USDT_PARALELO' | 'CUSTOM' | 'NONE'
+    >('CUSTOM');
 
     // Fetch default rate source system setting
     useEffect(() => {
@@ -124,7 +126,7 @@ export function EventListPage() {
             address: '',
             maxCapacity: 100,
             imageUrl: '',
-            rateSource: '' as 'CUSTOM',
+            rateSource: '' as 'USD_BCV' | 'EUR_BCV' | 'USDT_PARALELO' | 'CUSTOM' | '',
         },
     });
 
@@ -142,7 +144,12 @@ export function EventListPage() {
                 address: '',
                 maxCapacity: 100,
                 imageUrl: '',
-                rateSource: (defaultRateSource === 'NONE' ? '' : defaultRateSource) as 'CUSTOM',
+                rateSource: (defaultRateSource === 'NONE' ? '' : defaultRateSource) as
+                    | 'USD_BCV'
+                    | 'EUR_BCV'
+                    | 'USDT_PARALELO'
+                    | 'CUSTOM'
+                    | '',
             });
         }
     }, [isCreateOpen, defaultRateSource, reset]);
@@ -174,7 +181,7 @@ export function EventListPage() {
                 address: data.address as string,
                 maxCapacity: data.maxCapacity as number,
                 imageUrl: data.imageUrl as string,
-                rateSource: data.rateSource ? (data.rateSource as 'CUSTOM') : undefined,
+                rateSource: data.rateSource || undefined,
             });
 
             setSuccessMessage('¡Evento creado con éxito!');
