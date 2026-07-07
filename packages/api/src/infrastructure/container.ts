@@ -124,7 +124,6 @@ export const modules = {
         botTokenCipher,
     ),
     'events/:eventId/public': createPublicEventsModule(repositories.event, repositories.ticketType),
-    'events/:eventId': ticketsRouter,
     'events/:eventId/access': createAccessModule(
         repositories.ticket,
         repositories.accessLog,
@@ -132,6 +131,7 @@ export const modules = {
         repositories.event,
     ),
     'events/:eventId/dashboard': createDashboardModule(repositories.dashboard),
+    'events/:eventId': ticketsRouter,
     'admin/dashboard': createAdminDashboardModule(repositories.dashboard),
     'admin/settings': createSettingsModule(prisma),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),

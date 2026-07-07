@@ -128,10 +128,16 @@ function QrScannerView({
     useEffect(() => {
         mountedRef.current = true;
         let html5Qr: Html5Qrcode | null = null;
+        let timerId: ReturnType<typeof setTimeout> | null = null;
 
         const startScanner = async () => {
             if (!containerRef.current) return;
             try {
+                // Clear any leftover elements in the container
+                if (containerRef.current) {
+                    containerRef.current.innerHTML = '';
+                }
+
                 html5Qr = new Html5Qrcode('door-check-scanner-region');
                 scannerRef.current = html5Qr;
                 await html5Qr.start(
@@ -140,6 +146,13 @@ function QrScannerView({
                     (text) => void handleScan(text),
                     () => {},
                 );
+
+                // If component was unmounted while starting, stop it
+                if (!mountedRef.current) {
+                    if (html5Qr.isScanning) {
+                        await html5Qr.stop();
+                    }
+                }
             } catch {
                 if (mountedRef.current) {
                     setCameraError(
@@ -149,12 +162,20 @@ function QrScannerView({
             }
         };
 
-        void startScanner();
+        // Delay starting the scanner to avoid double-initialization in React Strict Mode (development)
+        timerId = setTimeout(() => {
+            void startScanner();
+        }, 250);
 
         return () => {
             mountedRef.current = false;
-            if (html5Qr?.isScanning) {
-                html5Qr.stop().catch(() => {});
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+            if (html5Qr) {
+                if (html5Qr.isScanning) {
+                    html5Qr.stop().catch(() => {});
+                }
             }
         };
     }, [handleScan]);
