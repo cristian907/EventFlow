@@ -1,6 +1,7 @@
 import { EnvironmentVariableError } from '../core/errors/InternalServerErrors';
 import prisma from '../infrastructure/database/PrismaClient';
 import { createAccessModule } from '../modules/access';
+import { createAdminDashboardModule } from '../modules/admin-dashboard';
 import { createAuthModule } from '../modules/auth';
 import { createBcvModule } from '../modules/bcv';
 import { createBotConfigModule } from '../modules/bot-config';
@@ -11,6 +12,7 @@ import { createInternalBotModule } from '../modules/internal-bot';
 import { createPaymentMethodsModule } from '../modules/payment-methods';
 import { createPublicEventsModule } from '../modules/public-events';
 import { createSalesModule } from '../modules/sales';
+import { createSettingsModule } from '../modules/settings';
 import { createStaffModule } from '../modules/staff';
 import { createTicketTypesModule } from '../modules/ticket-types';
 import { createTicketsModule, TicketCryptoService } from '../modules/tickets';
@@ -122,7 +124,6 @@ export const modules = {
         botTokenCipher,
     ),
     'events/:eventId/public': createPublicEventsModule(repositories.event, repositories.ticketType),
-    'events/:eventId': ticketsRouter,
     'events/:eventId/access': createAccessModule(
         repositories.ticket,
         repositories.accessLog,
@@ -130,6 +131,9 @@ export const modules = {
         repositories.event,
     ),
     'events/:eventId/dashboard': createDashboardModule(repositories.dashboard),
+    'events/:eventId': ticketsRouter,
+    'admin/dashboard': createAdminDashboardModule(repositories.dashboard),
+    'admin/settings': createSettingsModule(prisma),
     'internal/bot': createInternalBotModule(repositories.eventBotConfig, botTokenCipher),
     'exchange-rates/bcv': createBcvModule(providers.bcv),
 };

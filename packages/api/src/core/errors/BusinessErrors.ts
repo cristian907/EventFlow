@@ -308,3 +308,12 @@ export class EventNotPublicError extends BusinessError {
         super('El evento no está disponible públicamente.');
     }
 }
+
+export class RateSourceRequiredError extends BusinessError {
+    public readonly name = 'RateSourceRequiredError';
+    public readonly statusCode = 400;
+
+    constructor() {
+        super('El origen de tasa cambiaria es obligatorio.');
+    }
+}

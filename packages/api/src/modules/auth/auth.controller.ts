@@ -48,4 +48,23 @@ export default class AuthController {
             next(error);
         }
     };
+
+    updateTheme = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const store = requestContext.getStore();
+            if (!store) {
+                res.status(401).json({ message: 'No hay una sesión autenticada.' });
+                return;
+            }
+            const { theme } = req.body;
+            if (!theme || !['light', 'dark', 'system'].includes(theme)) {
+                res.status(400).json({ message: 'El tema provisto no es válido.' });
+                return;
+            }
+            const user = await this.authService.updateUserTheme(store.userId, theme);
+            res.json({ user });
+        } catch (error) {
+            next(error);
+        }
+    };
 }

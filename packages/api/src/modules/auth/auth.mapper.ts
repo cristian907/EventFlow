@@ -11,6 +11,10 @@ export default class AuthMapper {
             phoneNumber: user.phoneNumber,
             role: user.role,
             isActive: user.isActive,
+            theme: (['light', 'dark', 'system'].includes(user.theme) ? user.theme : 'light') as
+                | 'light'
+                | 'dark'
+                | 'system',
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

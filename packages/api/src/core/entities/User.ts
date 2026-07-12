@@ -12,6 +12,7 @@ export default class User {
         public phoneNumber: string,
         public role: UserRole,
         public isActive: boolean,
+        public theme: string,
         public createdBy: string | null,
         public createdAt: Date,
         public updatedAt: Date,

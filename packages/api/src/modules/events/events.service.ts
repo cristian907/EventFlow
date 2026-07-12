@@ -10,9 +10,11 @@ import {
     EventNotFoundError,
     ForbiddenError,
     MaxCapacityBelowAssignedError,
+    RateSourceRequiredError,
 } from '../../core/errors/BusinessErrors';
 import IEventRepository from '../../core/interfaces/repositories/IEventRepository';
 import ITicketTypeRepository from '../../core/interfaces/repositories/ITicketTypeRepository';
+import prisma from '../../infrastructure/database/PrismaClient';
 
 import EventsMapper from './events.mapper';
 
@@ -35,6 +37,31 @@ export default class EventsService {
         const parsedStartTime = new Date(eventData.startTime);
         const parsedEndTime = new Date(eventData.endTime);
 
+        // Retrieve default rate source from settings
+        const systemSetting = await prisma.systemSetting.findUnique({
+            where: { key: 'defaultRateSource' },
+        });
+        const allowedRates = ['USD_BCV', 'EUR_BCV', 'USDT_PARALELO', 'CUSTOM', 'NONE'];
+        const defaultRate =
+            systemSetting?.value && allowedRates.includes(systemSetting.value)
+                ? (systemSetting.value as
+                      | 'USD_BCV'
+                      | 'EUR_BCV'
+                      | 'USDT_PARALELO'
+                      | 'CUSTOM'
+                      | 'NONE')
+                : 'CUSTOM';
+
+        let rateSource = eventData.rateSource;
+        if (!rateSource) {
+            if (defaultRate === 'NONE') {
+                throw new RateSourceRequiredError();
+            }
+            rateSource = defaultRate;
+        }
+
+        const autoSyncBcv = rateSource !== 'CUSTOM';
+
         const createdEvent = await this.eventRepository.create({
             organizerId,
             name: eventData.name,
@@ -47,8 +74,8 @@ export default class EventsService {
             address: eventData.address,
             maxCapacity: eventData.maxCapacity,
             imageUrl: eventData.imageUrl || defaultImageUrl,
-            autoSyncBcv: eventData.autoSyncBcv,
-            rateSource: eventData.rateSource || (eventData.autoSyncBcv ? 'USD_BCV' : 'CUSTOM'),
+            autoSyncBcv,
+            rateSource,
         });
 
         return EventsMapper.toEventType(createdEvent);

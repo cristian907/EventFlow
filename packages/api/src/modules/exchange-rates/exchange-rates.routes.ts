@@ -21,10 +21,14 @@ export default function createExchangeRatesRoutes(
     );
     router.get(
         '/current',
-        authorizeEventRole('admin', 'collaborator'),
+        authorizeEventRole('admin', 'collaborator', 'scanner'),
         exchangeRatesController.getCurrent,
     );
-    router.get('/', authorizeEventRole('admin', 'collaborator'), exchangeRatesController.list);
+    router.get(
+        '/',
+        authorizeEventRole('admin', 'collaborator', 'scanner'),
+        exchangeRatesController.list,
+    );
 
     return router;
 }

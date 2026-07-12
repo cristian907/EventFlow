@@ -8,10 +8,14 @@ import {
     SalesByPaymentMethod,
     SalesByCurrency,
     CheckinsOverTime,
+    GlobalDashboardSummary,
+    GlobalDashboardQuery,
+    GlobalDashboardKpis,
+    GlobalEventSummary,
 } from '@eventflow/shared';
 
 import IDashboardRepository from '../../core/interfaces/repositories/IDashboardRepository';
-import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient, Prisma } from '../../generated/prisma/client';
 
 export default class PrismaDashboardRepository implements IDashboardRepository {
     constructor(private readonly prisma: PrismaClient) {}
@@ -426,6 +430,263 @@ export default class PrismaDashboardRepository implements IDashboardRepository {
             sales,
             inventory,
             attendance,
+        };
+    }
+
+    async getGlobalSummary(query: GlobalDashboardQuery): Promise<GlobalDashboardSummary> {
+        // 1. Get BCV rates for EUR conversion
+        const latestBcv = await this.prisma.bcvRate.findFirst({
+            orderBy: { scrapedAt: 'desc' },
+        });
+        const bcvEurRate = latestBcv?.eurRate ? Number(latestBcv.eurRate) : 38;
+        const bcvUsdRate = latestBcv?.usdRate ? Number(latestBcv.usdRate) : 36;
+        const eurUsdRatio = bcvUsdRate > 0 ? bcvEurRate / bcvUsdRate : 1.08;
+
+        // 2. Fetch event counts grouped by status
+        const eventCounts = await this.prisma.event.groupBy({
+            by: ['status'],
+            _count: {
+                id: true,
+            },
+        });
+
+        let eventsCreatedCount = 0;
+        let eventsActiveCount = 0;
+        let eventsCancelledCount = 0;
+
+        for (const ec of eventCounts) {
+            eventsCreatedCount += ec._count.id;
+            if (ec.status === 'ACTIVE') {
+                eventsActiveCount = ec._count.id;
+            } else if (ec.status === 'CANCELLED') {
+                eventsCancelledCount = ec._count.id;
+            }
+        }
+
+        // 3. Total tickets sold global
+        const ticketTypesAggregation = await this.prisma.ticketType.aggregate({
+            _sum: {
+                soldQuantity: true,
+            },
+        });
+        const totalTicketsSold = ticketTypesAggregation._sum.soldQuantity || 0;
+
+        // 4. Global capacity (combined max capacity of all events)
+        const eventsCapacityAggregation = await this.prisma.event.aggregate({
+            _sum: {
+                maxCapacity: true,
+            },
+        });
+        const globalCapacity = eventsCapacityAggregation._sum.maxCapacity || 0;
+        const globalOccupationPercentage =
+            globalCapacity > 0 ? (totalTicketsSold / globalCapacity) * 100 : 0;
+
+        // 5. Total revenue in USD across the entire platform
+        const orderGroups = await this.prisma.order.groupBy({
+            by: ['currency'],
+            _sum: {
+                totalAmount: true,
+            },
+        });
+
+        let totalRevenueUSD = 0;
+        for (const og of orderGroups) {
+            const amount = og._sum.totalAmount ? Number(og._sum.totalAmount) : 0;
+            if (og.currency === 'EUR') {
+                totalRevenueUSD += amount * eurUsdRatio;
+            } else if (og.currency === 'VES') {
+                totalRevenueUSD += bcvUsdRate > 0 ? amount / bcvUsdRate : amount / 36;
+            } else {
+                totalRevenueUSD += amount;
+            }
+        }
+
+        // 6. Global Attendance
+        const usedTicketsCount = await this.prisma.ticket.count({
+            where: { status: 'USED' },
+        });
+        const totalIssuedTicketsCount = await this.prisma.ticket.count({
+            where: { status: { in: ['VALID', 'USED'] } },
+        });
+        const globalAttendancePercentage =
+            totalIssuedTicketsCount > 0 ? (usedTicketsCount / totalIssuedTicketsCount) * 100 : 0;
+
+        const kpis: GlobalDashboardKpis = {
+            totalRevenueUSD: Number(totalRevenueUSD.toFixed(2)),
+            totalTicketsSold,
+            globalOccupationPercentage: Number(globalOccupationPercentage.toFixed(2)),
+            globalAttendancePercentage: Number(globalAttendancePercentage.toFixed(2)),
+            eventsCreatedCount,
+            eventsActiveCount,
+            eventsCancelledCount,
+        };
+
+        // 7. Get filtered list of ALL events
+        const whereClause: Prisma.EventWhereInput = {};
+        if (query.status) {
+            whereClause.status = query.status;
+        }
+        if (query.search) {
+            whereClause.name = {
+                contains: query.search,
+                mode: 'insensitive',
+            };
+        }
+
+        const allEvents = await this.prisma.event.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                name: true,
+                status: true,
+                maxCapacity: true,
+            },
+        });
+
+        const eventIds = allEvents.map((e) => e.id);
+
+        if (eventIds.length === 0) {
+            return {
+                kpis,
+                eventSummaries: {
+                    items: [],
+                    total: 0,
+                    page: query.page || 1,
+                    limit: query.limit || 10,
+                    totalPages: 0,
+                },
+            };
+        }
+
+        // Fetch Order sums grouped by eventId and currency for these events
+        const eventOrderSums = await this.prisma.order.groupBy({
+            by: ['eventId', 'currency'],
+            where: {
+                eventId: { in: eventIds },
+            },
+            _sum: {
+                totalAmount: true,
+            },
+        });
+
+        // Fetch Tickets sold grouped by eventId for these events
+        const eventTicketTypeSums = await this.prisma.ticketType.groupBy({
+            by: ['eventId'],
+            where: {
+                eventId: { in: eventIds },
+            },
+            _sum: {
+                soldQuantity: true,
+            },
+        });
+
+        // Fetch Ticket status counts grouped by eventId and status for these events
+        const eventTicketCounts = await this.prisma.ticket.groupBy({
+            by: ['eventId', 'status'],
+            where: {
+                eventId: { in: eventIds },
+            },
+            _count: {
+                id: true,
+            },
+        });
+
+        // Build mapping lookup structures
+        const revenueMap = new Map<string, number>();
+        for (const eos of eventOrderSums) {
+            const amount = eos._sum.totalAmount ? Number(eos._sum.totalAmount) : 0;
+            let usdVal = 0;
+            if (eos.currency === 'EUR') {
+                usdVal = amount * eurUsdRatio;
+            } else if (eos.currency === 'VES') {
+                usdVal = bcvUsdRate > 0 ? amount / bcvUsdRate : amount / 36;
+            } else {
+                usdVal = amount;
+            }
+            revenueMap.set(eos.eventId, (revenueMap.get(eos.eventId) || 0) + usdVal);
+        }
+
+        const soldMap = new Map<string, number>();
+        for (const tts of eventTicketTypeSums) {
+            const sold = tts._sum.soldQuantity || 0;
+            soldMap.set(tts.eventId, sold);
+        }
+
+        const ticketCountsMap = new Map<string, { used: number; total: number }>();
+        for (const tc of eventTicketCounts) {
+            const current = ticketCountsMap.get(tc.eventId) || { used: 0, total: 0 };
+            const count = tc._count.id;
+            if (tc.status === 'USED') {
+                current.used += count;
+            }
+            if (tc.status === 'VALID' || tc.status === 'USED') {
+                current.total += count;
+            }
+            ticketCountsMap.set(tc.eventId, current);
+        }
+
+        // Map events to summary DTOs
+        const eventSummariesMapped: GlobalEventSummary[] = allEvents.map((e) => {
+            const rev = revenueMap.get(e.id) || 0;
+            const sold = soldMap.get(e.id) || 0;
+            const tc = ticketCountsMap.get(e.id) || { used: 0, total: 0 };
+            const attendancePct = tc.total > 0 ? (tc.used / tc.total) * 100 : 0;
+
+            return {
+                id: e.id,
+                name: e.name,
+                status: e.status as EventStatus,
+                revenueUSD: Number(rev.toFixed(2)),
+                ticketsSold: sold,
+                capacity: e.maxCapacity,
+                attendancePercentage: Number(attendancePct.toFixed(2)),
+            };
+        });
+
+        // Apply Sorting
+        if (query.sortBy) {
+            const orderMultiplier = query.sortOrder === 'asc' ? 1 : -1;
+            eventSummariesMapped.sort((a, b) => {
+                let valA = 0;
+                let valB = 0;
+
+                if (query.sortBy === 'revenue') {
+                    valA = a.revenueUSD;
+                    valB = b.revenueUSD;
+                } else if (query.sortBy === 'occupancy') {
+                    valA = a.capacity > 0 ? a.ticketsSold / a.capacity : 0;
+                    valB = b.capacity > 0 ? b.ticketsSold / b.capacity : 0;
+                } else if (query.sortBy === 'attendance') {
+                    valA = a.attendancePercentage;
+                    valB = b.attendancePercentage;
+                }
+
+                if (valA < valB) return -1 * orderMultiplier;
+                if (valA > valB) return 1 * orderMultiplier;
+                return 0;
+            });
+        } else {
+            // Default sort: name
+            eventSummariesMapped.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        // Apply Pagination
+        const total = eventSummariesMapped.length;
+        const page = query.page || 1;
+        const limit = query.limit || 10;
+        const totalPages = Math.ceil(total / limit);
+        const offset = (page - 1) * limit;
+        const paginatedItems = eventSummariesMapped.slice(offset, offset + limit);
+
+        return {
+            kpis,
+            eventSummaries: {
+                items: paginatedItems,
+                total,
+                page,
+                limit,
+                totalPages,
+            },
         };
     }
 }

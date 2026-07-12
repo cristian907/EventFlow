@@ -47,3 +47,37 @@
     --font-serif: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
+
+[data-theme='dark'] {
+    /* ===== Backgrounds ===== */
+    --bg-base: #12100f;
+    --bg-surface: #1a1716;
+    --bg-elevated: #24201e;
+
+    /* ===== Text ===== */
+    --text-primary: #f5f3f2;
+    --text-secondary: #a39b97;
+    --text-disabled: #615a57;
+
+    /* ===== Border ===== */
+    --border: #383230;
+
+    /* ===== Primary (Coral) ===== */
+    --primary-light: #2c1a18;
+
+    /* ===== Secondary (Teal) ===== */
+    --secondary-light: #162622;
+
+    /* ===== Danger ===== */
+    --danger-light: #2d1616;
+
+    /* ===== Success ===== */
+    --success-light: #12221c;
+
+    /* ===== Warning ===== */
+    --warning-light: #2c2113;
+
+    /* ===== Shadows ===== */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+}

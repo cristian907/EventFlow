@@ -27,6 +27,7 @@ export default class PrismaUserRepository implements IUserRepository {
             prismaUser.phoneNumber,
             toDomainRole(prismaUser.role),
             prismaUser.isActive,
+            prismaUser.theme,
             prismaUser.createdBy,
             prismaUser.createdAt,
             prismaUser.updatedAt,
@@ -152,6 +153,14 @@ export default class PrismaUserRepository implements IUserRepository {
         const updatedUser = await this.prismaClient.user.update({
             where: { id },
             data: { isActive },
+        });
+        return this.mapToUserEntity(updatedUser);
+    }
+
+    async updateTheme(id: string, theme: string): Promise<User> {
+        const updatedUser = await this.prismaClient.user.update({
+            where: { id },
+            data: { theme },
         });
         return this.mapToUserEntity(updatedUser);
     }

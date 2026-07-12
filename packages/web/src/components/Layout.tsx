@@ -54,7 +54,14 @@ const NAV_ITEMS: NavItem[] = [
         group: 'administración',
         roleRequired: 'ADMIN',
     },
-    { id: 'config', label: 'Configuración', path: '/config', icon: faCog, group: 'administración' },
+    {
+        id: 'config',
+        label: 'Configuración',
+        path: '/config',
+        icon: faCog,
+        group: 'administración',
+        roleRequired: 'ADMIN',
+    },
 ];
 
 const EVENT_NAV_ITEMS = (eventId: string): EventNavItem[] => [
@@ -434,6 +441,26 @@ export function Layout() {
                                     boxShadow: 'var(--shadow-md)',
                                 }}
                             >
+                                <Link
+                                    to="/settings"
+                                    onClick={() => setProfileMenuOpen(false)}
+                                    className="nav-item"
+                                    style={{
+                                        color: 'var(--text-primary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 10,
+                                        width: '100%',
+                                        padding: '8px 10px',
+                                        borderRadius: 6,
+                                        textDecoration: 'none',
+                                        marginBottom: 4,
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    <FontAwesomeIcon icon={faCog} />
+                                    Ajustes de Perfil
+                                </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="nav-item"

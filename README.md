@@ -133,8 +133,8 @@ pnpm --filter api exec prisma generate
 # Apply all migrations
 pnpm --filter api exec prisma migrate dev
 
-# Seed the database with test users
-pnpm --filter api exec tsx prisma/seedUser.ts
+# Seed the database with test users and events
+pnpm --filter api run seed
 ```
 
 ### Reset the database from scratch
@@ -183,7 +183,7 @@ pnpm run build:shared
 # 4. Setup database
 pnpm --filter api exec prisma generate
 pnpm --filter api exec prisma migrate dev
-pnpm --filter api exec tsx prisma/seedUser.ts
+pnpm --filter api run seed
 
 # 5. Start development servers
 pnpm run dev

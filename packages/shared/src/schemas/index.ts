@@ -8,3 +8,5 @@ export * from './sale.schemas';
 export * from './ticket.schemas';
 export * from './access.schemas';
 export * from './botConfig.schemas';
+export * from './dashboard.schemas';
+export * from './settings.schemas';

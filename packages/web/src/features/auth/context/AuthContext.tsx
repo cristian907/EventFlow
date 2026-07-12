@@ -16,6 +16,7 @@ interface AuthContextType {
     isLoading: boolean;
     loginUser: (email: string, password: string) => Promise<void>;
     logoutUser: () => Promise<void>;
+    updateUserTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,6 +52,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
+    // Sync theme to DOM dynamically
+    useEffect(() => {
+        const themePreference = user?.theme || 'light';
+        const applyTheme = (theme: 'light' | 'dark' | 'system') => {
+            if (theme === 'system') {
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', systemDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+        };
+
+        applyTheme(themePreference);
+
+        // If theme is system, listen to changes in OS preferences
+        if (themePreference === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const listener = (e: MediaQueryListEvent) => {
+                document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            };
+            mediaQuery.addEventListener('change', listener);
+            return () => mediaQuery.removeEventListener('change', listener);
+        }
+    }, [user?.theme]);
+
     const loginUser = useCallback(async (email: string, password: string) => {
         setIsLoading(true);
         try {
@@ -78,9 +104,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const updateUserTheme = useCallback(async (theme: 'light' | 'dark' | 'system') => {
+        try {
+            const response = await api.put<{ user: UserType }>('/auth/theme', { theme });
+            setUser(response.data.user);
+        } catch (error) {
+            console.error('Error updating theme:', error);
+            throw error;
+        }
+    }, []);
+
     const value = useMemo(
-        () => ({ user, isLoading, loginUser, logoutUser }),
-        [user, isLoading, loginUser, logoutUser],
+        () => ({ user, isLoading, loginUser, logoutUser, updateUserTheme }),
+        [user, isLoading, loginUser, logoutUser, updateUserTheme],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

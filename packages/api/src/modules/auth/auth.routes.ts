@@ -12,6 +12,7 @@ export default function createAuthRoutes(authController: AuthController): Router
     router.post('/login', validateSchema(UserToLoginSchema), authController.login);
     router.get('/me', authMiddleware, authController.me);
     router.post('/logout', authMiddleware, authController.logout);
+    router.put('/theme', authMiddleware, authController.updateTheme);
 
     return router;
 }

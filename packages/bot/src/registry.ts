@@ -50,8 +50,13 @@ export default class BotRegistry {
 
             if (!current) {
                 await this.startBot(cfg);
-            } else if (current.token !== cfg.telegramBotToken || current.updatedAt !== cfg.updatedAt) {
-                logger.info('Reiniciando bot por cambio de configuración', { eventId: cfg.eventId });
+            } else if (
+                current.token !== cfg.telegramBotToken ||
+                current.updatedAt !== cfg.updatedAt
+            ) {
+                logger.info('Reiniciando bot por cambio de configuración', {
+                    eventId: cfg.eventId,
+                });
                 await this.stopBot(cfg.eventId);
                 await this.startBot(cfg);
             }

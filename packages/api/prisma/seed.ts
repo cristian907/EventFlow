@@ -28,6 +28,7 @@ const seedUsersData = [
         phoneNumber: '+1234567890',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'light',
     },
     {
         fullName: 'Sofia Rodriguez',
@@ -35,6 +36,7 @@ const seedUsersData = [
         phoneNumber: '+1987654321',
         role: 'ADMIN' as const,
         password: 'password1234',
+        theme: 'dark',
     },
     {
         fullName: 'Carlos Mendoza',
@@ -42,6 +44,7 @@ const seedUsersData = [
         phoneNumber: '+1555019283',
         role: 'USER' as const,
         password: 'password1234',
+        theme: 'system',
     },
     {
         fullName: 'Ana Gomez',
@@ -114,6 +117,7 @@ async function cleanDatabase(): Promise<void> {
     await prisma.user.deleteMany({});
 
     await prisma.bcvRate.deleteMany({});
+    await prisma.systemSetting.deleteMany({});
     console.log('Database cleaned successfully!');
 }
 
@@ -122,6 +126,15 @@ async function seed(): Promise<void> {
     await cleanDatabase();
 
     console.log('Starting seed process...');
+
+    // 1.5 Seed System Settings
+    console.log('Seeding system settings...');
+    await prisma.systemSetting.create({
+        data: {
+            key: 'defaultRateSource',
+            value: 'CUSTOM',
+        },
+    });
 
     // 2. Seed Users
     const users: Record<string, User> = {};
@@ -135,6 +148,7 @@ async function seed(): Promise<void> {
                 passwordHash,
                 phoneNumber: userData.phoneNumber,
                 role: userData.role,
+                theme: userData.theme,
             },
         });
         users[userData.email] = user;
@@ -500,8 +514,8 @@ async function seed(): Promise<void> {
             customerId: customer2.id,
             soldById: userCarlos.id,
             exchangeRateId: exchangeRate1.id,
-            currency: 'VES',
-            totalAmount: 6825.0,
+            currency: 'USD',
+            totalAmount: 150.0,
             createdAt: new Date('2026-06-03T14:00:00Z'),
         },
     });
@@ -603,8 +617,8 @@ async function seed(): Promise<void> {
             customerId: customer4.id,
             soldById: userCarlos.id,
             exchangeRateId: exchangeRate1.id,
-            currency: 'VES',
-            totalAmount: 7280.0,
+            currency: 'USD',
+            totalAmount: 160.0,
             createdAt: new Date('2026-06-05T12:00:00Z'),
         },
     });
