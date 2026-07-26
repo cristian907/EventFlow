@@ -1,0 +1,18 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="1024" height="1024">
+  <defs>
+    <mask id="ticket-mask">
+      <rect width="64" height="64" fill="black"></rect>
+      <rect x="8" y="16" width="48" height="32" rx="5" fill="white"></rect>
+      <circle cx="8" cy="32" r="3.5" fill="black"></circle>
+      <circle cx="56" cy="32" r="3.5" fill="black"></circle>
+    </mask>
+  </defs>
+  
+  <rect width="64" height="64" rx="14" fill="#201D1C"></rect>
+  
+  <rect x="8" y="16" width="48" height="32" rx="5" fill="#F4F1EF" mask="url(#ticket-mask)"></rect>
+  <rect x="14" y="22" width="22" height="4" rx="2" fill="#201D1C"></rect>
+  <rect x="20" y="30" width="28" height="4" rx="2" fill="#ED786A"></rect>
+  <rect x="14" y="38" width="24" height="4" rx="2" fill="#201D1C"></rect>
+</svg>

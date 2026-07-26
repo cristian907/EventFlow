@@ -1,37 +1,88 @@
 import 'dotenv/config';
-import { Event, formatEventDate } from '@eventflow/shared';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
+import helmet from 'helmet';
+import morgan from 'morgan';
+
+import { modules, initializeProviders } from './infrastructure/container';
+import globalErrorHandler from './infrastructure/http/globalErrorHandler';
+import { logger } from './infrastructure/logger';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 500,
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    logger: {
+        warn: (error: unknown, message?: string) =>
+            logger.warn(message ?? String(error), { error }),
+        error: (error: unknown, message?: string) =>
+            logger.error(message ?? String(error), { error }),
+    },
+    skip: (req) => req.path.startsWith('/api/auth'),
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: 'Too many login attempts, please try again after 15 minutes',
+    logger: {
+        warn: (error: unknown, message?: string) =>
+            logger.warn(message ?? String(error), { error }),
+        error: (error: unknown, message?: string) =>
+            logger.error(message ?? String(error), { error }),
+    },
+});
 
 app.use(
     cors({
-        origin: FRONTEND_URL,
+        origin: true,
         credentials: true,
     }),
 );
+app.use(limiter);
+app.use('/api/auth', authLimiter);
+app.use(helmet());
+app.use(morgan('tiny'));
 app.use(express.json());
+app.use(cookieParser());
 
-app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+for (const [path, router] of Object.entries(modules)) {
+    app.use(`/api/${path}`, router);
+}
+
+app.use(globalErrorHandler);
+
+// Initialize providers before starting server to prevent racing early requests
+await initializeProviders().catch((err) => {
+    logger.error('Failed to initialize providers during startup:', { err });
 });
 
-app.get('/api/events', (_req, res) => {
-    const events: Event[] = [
-        {
-            id: '1',
-            name: 'Graduation',
-            date: formatEventDate(new Date()),
-            description: 'UJAP Engineers Graduation',
-        },
-    ];
-
-    res.json(events);
+const server = app.listen(PORT, () => {
+    logger.info(`API server running on http://localhost:${PORT}`);
 });
 
-app.listen(PORT, () => {
-    console.log(`API server running on http://localhost:${PORT}`);
+server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Exiting...`);
+        process.exit(1);
+    } else {
+        logger.error('Server error', { err });
+        throw err;
+    }
 });
+
+const shutdown = (signal: string): void => {
+    logger.info(`Received ${signal}. Closing server...`);
+    server.close(() => {
+        logger.info('Server closed.');
+        process.exit(0);
+    });
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

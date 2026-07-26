@@ -10,7 +10,9 @@ export default [
         languageOptions: {
             parser: tsparser,
             parserOptions: {
-                project: './tsconfig.json',
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
                 tsconfigRootDir: import.meta.dirname,
             },
             globals: {
@@ -24,13 +26,6 @@ export default [
         rules: {
             ...tseslint.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                },
-            ],
             '@typescript-eslint/explicit-function-return-type': [
                 'error',
                 {

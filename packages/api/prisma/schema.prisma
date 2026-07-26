@@ -1,0 +1,291 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id @default(uuid())
+  fullName String
+  email String @unique
+  passwordHash String
+  phoneNumber String
+  role UserRole @default(USER)
+  isActive Boolean @default(true)
+  theme String @default("light")
+  eventsOrganized Event[]
+  eventMembers EventMember[]
+  usersCreated User[] @relation("UserCreatedBy")
+  createdByUser User? @relation("UserCreatedBy", fields: [createdBy], references: [id])
+  createdBy String?
+  exchangeRatesSet ExchangeRate[]
+  ordersSold Order[] @relation("OrdersSoldBy")
+  paymentsVerified Payment[] @relation("PaymentsVerifiedBy")
+  accessLogsScanned AccessLog[] @relation("AccessLogsScannedBy")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Event {
+  id String @id @default(uuid())
+  organizer User @relation(fields: [organizerId], references: [id])
+  organizerId String
+  imageUrl String
+  name String
+  description String
+  startDate DateTime
+  endDate DateTime
+  startTime DateTime
+  endTime DateTime
+  location String
+  address String
+  maxCapacity Int
+  status EventStatus @default(DRAFT)
+  eventMembers EventMember[]
+  ticketTypes TicketType[]
+  paymentMethods PaymentMethod[]
+  exchangeRates ExchangeRate[]
+  orders Order[]
+  tickets Ticket[]
+  accessLogs AccessLog[]
+  botConfig EventBotConfig?
+  autoSyncBcv Boolean @default(false)
+  rateSource  String  @default("CUSTOM")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  CANCELLED
+}
+
+model EventBotConfig {
+  id                        String   @id @default(uuid())
+  event                     Event    @relation(fields: [eventId], references: [id])
+  eventId                   String   @unique
+  telegramBotTokenEncrypted String?
+  salesWhatsappNumber       String?
+  salesHandoffMessage       String?
+  welcomeMessage            String?
+  isEnabled                 Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model EventMember {
+  id String @id @default(uuid())
+  event Event @relation(fields: [eventId], references: [id])
+  eventId String
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  role EventMemberRole
+  status EventMemberStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+}
+
+enum EventMemberRole {
+  ORGANIZER
+  ADMIN
+  COLLABORATOR
+  SCANNER
+}
+
+enum EventMemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+
+enum Currency {
+  USD
+  VES
+  EUR
+}
+
+model TicketType {
+  id            String      @id @default(uuid())
+  event         Event       @relation(fields: [eventId], references: [id])
+  eventId       String
+  name          String
+  description   String      @default("")
+  price         Float
+  usdPrice      Float       @default(0)
+  currency      Currency    @default(USD)
+  totalQuantity Int
+  soldQuantity  Int         @default(0)
+  isActive      Boolean     @default(true)
+  saleStartsAt  DateTime?
+  saleEndsAt    DateTime?
+  orderItems    OrderItem[]
+  tickets       Ticket[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model PaymentMethod {
+  id        String    @id @default(uuid())
+  event     Event     @relation(fields: [eventId], references: [id])
+  eventId   String
+  name      String
+  details   String
+  currency  Currency
+  isActive  Boolean   @default(true)
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model ExchangeRate {
+  id          String   @id @default(uuid())
+  event       Event    @relation(fields: [eventId], references: [id])
+  eventId     String
+  rate        Decimal
+  source      String   @default("manual")
+  setByUser   User?    @relation(fields: [setBy], references: [id])
+  setBy       String?
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  idNumber  String   @unique
+  fullName  String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+  tickets   Ticket[]
+}
+
+model Order {
+  id             String       @id @default(uuid())
+  event          Event        @relation(fields: [eventId], references: [id])
+  eventId        String
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  customerId     String
+  soldBy         User         @relation("OrdersSoldBy", fields: [soldById], references: [id])
+  soldById       String
+  exchangeRate   ExchangeRate @relation(fields: [exchangeRateId], references: [id])
+  exchangeRateId String
+  currency       String       @default("USD")
+  totalAmount    Decimal
+  createdAt      DateTime     @default(now())
+  items          OrderItem[]
+  payments       Payment[]
+  tickets        Ticket[]
+}
+
+model OrderItem {
+  id           String     @id @default(uuid())
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderId      String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId String
+  quantity     Int
+  unitPrice    Decimal
+  currency     String
+  subtotal     Decimal
+  tickets      Ticket[]
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  order           Order         @relation(fields: [orderId], references: [id])
+  orderId         String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId String
+  amount          Decimal
+  currency        String
+  reference       String?
+  receiptUrl      String?
+  status          String        @default("APPROVED")
+  verifiedBy      User          @relation("PaymentsVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedById    String
+  verifiedAt      DateTime      @default(now())
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
+model Ticket {
+  id           String       @id @default(uuid())
+  event        Event        @relation(fields: [eventId], references: [id])
+  eventId      String
+  order        Order        @relation(fields: [orderId], references: [id])
+  orderId      String
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+  orderItemId  String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  customerId   String
+  ticketType   TicketType   @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId String
+  qrCode       String       @unique
+  qrSignature  String
+  status       TicketStatus @default(VALID)
+  issuedAt     DateTime     @default(now())
+  usedAt       DateTime?
+  accessLogs   AccessLog[]
+}
+
+enum AccessResult {
+  VALID
+  ALREADY_USED
+  INVALID
+}
+
+enum AccessMethod {
+  QR
+  MANUAL
+}
+
+model AccessLog {
+  id          String       @id @default(uuid())
+  event       Event        @relation(fields: [eventId], references: [id])
+  eventId     String
+  ticket      Ticket?      @relation(fields: [ticketId], references: [id])
+  ticketId    String?
+  scannedBy   User         @relation("AccessLogsScannedBy", fields: [scannedById], references: [id])
+  scannedById String
+  result      AccessResult
+  method      AccessMethod
+  scannedAt   DateTime     @default(now())
+
+  @@index([eventId, scannedAt])
+}
+
+model BcvRate {
+  id          String    @id @default(uuid())
+  usdRate     Decimal
+  eurRate     Decimal
+  usdtRate    Decimal?
+  valueDate   DateTime?
+  scrapedAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model SystemSetting {
+  key   String @id
+  value String
+}
+

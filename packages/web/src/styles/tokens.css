@@ -1,0 +1,83 @@
+:root {
+    /* ===== Backgrounds ===== */
+    --bg-base: #f4f1ef;
+    --bg-surface: #f9f7f5;
+    --bg-elevated: #ffffff;
+
+    /* ===== Text ===== */
+    --text-primary: #201d1c;
+    --text-secondary: #7a736f;
+    --text-disabled: #b0a9a5;
+
+    /* ===== Border ===== */
+    --border: #e4e1de;
+
+    /* ===== Primary (Coral) ===== */
+    --primary: #ed786a;
+    --primary-dark: #d4574a;
+    --primary-hover: #e5655a;
+    --primary-light: #fceeed;
+
+    /* ===== Secondary (Teal) ===== */
+    --secondary: #4a9e8e;
+    --secondary-dark: #357a6d;
+    --secondary-light: #e6f5f1;
+
+    /* ===== Danger ===== */
+    --danger: #d64545;
+    --danger-light: #fdeeee;
+
+    /* ===== Success ===== */
+    --success: #2d8a6e;
+    --success-light: #e7f6f0;
+
+    /* ===== Warning ===== */
+    --warning: #d4933d;
+    --warning-light: #fdf4e7;
+
+    /* ===== Shadows ===== */
+    --shadow-sm: 0 1px 2px rgba(32, 29, 28, 0.06), 0 1px 3px rgba(32, 29, 28, 0.08);
+    --shadow-md: 0 4px 12px rgba(32, 29, 28, 0.08), 0 2px 6px rgba(32, 29, 28, 0.06);
+
+    /* ===== Radius ===== */
+    --r-lg: 12px;
+
+    /* ===== Typography ===== */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+[data-theme='dark'] {
+    /* ===== Backgrounds ===== */
+    --bg-base: #12100f;
+    --bg-surface: #1a1716;
+    --bg-elevated: #24201e;
+
+    /* ===== Text ===== */
+    --text-primary: #f5f3f2;
+    --text-secondary: #a39b97;
+    --text-disabled: #615a57;
+
+    /* ===== Border ===== */
+    --border: #383230;
+
+    /* ===== Primary (Coral) ===== */
+    --primary-light: #2c1a18;
+
+    /* ===== Secondary (Teal) ===== */
+    --secondary-light: #162622;
+
+    /* ===== Danger ===== */
+    --danger-light: #2d1616;
+
+    /* ===== Success ===== */
+    --success-light: #12221c;
+
+    /* ===== Warning ===== */
+    --warning-light: #2c2113;
+
+    /* ===== Shadows ===== */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+}

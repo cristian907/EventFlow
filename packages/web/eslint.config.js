@@ -12,7 +12,9 @@ export default [
         languageOptions: {
             parser: tsparser,
             parserOptions: {
-                project: './tsconfig.json',
+                projectService: {
+                    allowDefaultProject: ['*.config.ts', '*.config.js'],
+                },
                 tsconfigRootDir: import.meta.dirname,
                 ecmaFeatures: {
                     jsx: true,
@@ -39,13 +41,6 @@ export default [
             ...react.configs['jsx-runtime'].rules,
             ...reactHooks.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                },
-            ],
             '@typescript-eslint/no-floating-promises': 'error',
             '@typescript-eslint/no-misused-promises': 'error',
             '@typescript-eslint/await-thenable': 'error',

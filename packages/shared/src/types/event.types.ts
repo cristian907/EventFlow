@@ -1,0 +1,28 @@
+import { EventToCreate, EventToUpdate } from '../schemas/event.schemas';
+
+export type EventStatus = 'DRAFT' | 'ACTIVE' | 'CANCELLED';
+
+export type EventMemberRole = 'ORGANIZER' | 'ADMIN' | 'COLLABORATOR' | 'SCANNER';
+
+export interface EventType {
+    id: string;
+    organizerId: string;
+    imageUrl: string;
+    name: string;
+    description: string;
+    startDate: Date | string;
+    endDate: Date | string;
+    startTime: Date | string;
+    endTime: Date | string;
+    location: string;
+    address: string;
+    maxCapacity: number;
+    status: EventStatus;
+    autoSyncBcv: boolean;
+    rateSource: 'USD_BCV' | 'EUR_BCV' | 'USDT_PARALELO' | 'CUSTOM';
+    createdAt: Date | string;
+    updatedAt: Date | string;
+}
+
+export type EventToCreateType = EventToCreate;
+export type EventToUpdateType = EventToUpdate;

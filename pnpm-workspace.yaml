@@ -1,5 +1,10 @@
 packages:
   - 'packages/*'
 allowBuilds:
+  '@google/genai': false
+  '@prisma/engines': true
+  bcrypt: true
   esbuild: true
+  prisma: true
+  protobufjs: false
   unrs-resolver: true
